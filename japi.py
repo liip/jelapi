@@ -84,7 +84,7 @@ class JelasticAPI:
         response = self.post(
             "environment/control/rest/getenvinfo", {"envName": envName}
         )
-        return response["infos"]
+        return response
 
     def RedeployContainersByGroup(
         self, envName: str, tag: str, nodeGroup: str = "cp"

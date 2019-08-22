@@ -5,7 +5,8 @@ import os
 import requests
 import sys
 
-from typing import Any, Dict
+from functools import lru_cache
+from typing import Any, Dict, Tuple
 from pprint import pprint
 
 logger = logging.getLogger("jelastic.py")
@@ -53,7 +54,7 @@ class JelasticAPIConnector:
     def _(self, function: str, **kwargs) -> Dict:
         """
         Direct API call, converting function paths into URLs; allows:
-            JelasticAPI._('Environment.Control.GetEnvs')
+            JelasticAPIConnector._('Environment.Control.GetEnvs')
         """
         self.logger.info("{fnc}({data})".format(fnc=function, data=kwargs))
         # Determine function endpoint from the two-dotted string
@@ -71,13 +72,29 @@ class JelasticAPIConnector:
         return self._apicall(uri=uri, method="post", data=kwargs)
 
 
+class JelasticEnv:
+    """
+    Convenience "Env" storage class
+    """
+
+    def __init__(self, apidict: Dict) -> None:
+        self.name = apidict["env"]["envName"]
+        self.env = apidict
+        self.envGroups = set(apidict["envGroups"])
+
+    def hasEnvGroups(self, envGroups: [str]) -> bool:
+        """
+        Check that this env has a set of envGroups
+        """
+        return set(envGroups).issubset(self.envGroups)
+
+
 class JelasticAPI:
-    def __init__(self, apiurl: str, apitoken: str):
+    def __init__(self, apiurl: str, apitoken: str) -> None:
         """
         Get all needed data to connect to a Jelastic API
         """
         self.japic = JelasticAPIConnector(apiurl=apiurl, apitoken=apitoken)
-        self.logger = logging.getLogger("JelasticAPI")
 
     def test(self) -> Dict:
         """
@@ -85,97 +102,85 @@ class JelasticAPI:
         """
         return self.japic._("Users.Account.GetUserInfo")
 
-    def GetEnvs(self) -> Dict:
+    @property
+    @lru_cache(maxsize=None)
+    def envs(self) -> [JelasticEnv]:
         """
-        Environment.Control.GetEnvs Jelastic API call
+        Get the dict of environments from the API
         """
         response = self.japic._("Environment.Control.GetEnvs")
-        return response["infos"]
+        return [JelasticEnv(env) for env in response["infos"]]
 
-    def GetEnvInfo(self, envName: str) -> Dict:
+    @lru_cache(maxsize=None)
+    def getEnvByName(self, name: str) -> JelasticEnv:
         """
-        Environment.Control.GetEnvInfo Jelastic API call
+        Get JelasticEnv object, by name
         """
-        return self.japic._("Environment.Control.GetEnvInfo", envName=envName)
+        return JelasticEnv(self.japic._("Environment.Control.GetEnvInfo", envName=name))
 
-    def RedeployContainersByGroup(
-        self, envName: str, tag: str, nodeGroup: str = "cp"
-    ) -> Dict:
+    def getEnvsByEnvGroups(self, envGroups: [str]) -> [JelasticEnv]:
         """
-        Environment.Control.RedeployContainersByGroup Jelastic API call
+        Get environments that match the envGroups' array
         """
-        response = self.japic._(
-            "Environment.Control.RedeployContainersByGroup",
-            tag=tag,
-            nodeGroup=nodeGroup,
-            envName=envName,
+        return [e for e in self.envs if e.hasEnvGroups(envGroups)]
+
+    def clear_envs(self) -> None:
+        type(self).envs.fget.cache_clear()
+        self.getEnvByName.cache_clear()
+
+    def cloneEnv(self, sourceEnv: JelasticEnv, destEnvName: str) -> None:
+        """
+        Clone source environment to dstEnvName.
+        """
+        self.japic._(
+            "Environment.Control.CloneEnv",
+            srcEnvName=sourceEnv.name,
+            dstEnvName=destEnvName,
         )
-        return response["responses"]
+        self.clear_envs()
+        return self.getEnvByName(name=destEnvName)
 
-    def CloneEnv(self, srcEnvName: str, dstEnvName: str) -> Dict:
+    def attachEnvGroup(self, env: JelasticEnv, envGroup: str) -> None:
         """
-        Environment.Control.CloneEnv Jelastic API call
+        Attach an EnvGroup to a JelasticEnv
         """
-        return self.japic._(
-            "Environment.Control.CloneEnv", srcEnvName=srcEnvName, dstEnvName=dstEnvName
+        self.japic._(
+            "Environment.Control.AttachEnvGroup", envName=env.name, envGroup=envGroup
         )
+        self.clear_envs()
 
-    def AddContainerEnvVars(
-        self, envName: str, nodeGroup: str = "", nodeId: str = "", vars: Dict = {}
-    ) -> Dict:
+    def detachEnvGroup(self, env: JelasticEnv, envGroup: str) -> None:
         """
-        Environment.Control.AddContainerEnvVars Jelastic API call
+        Detach an EnvGroup from a JelasticEnv
         """
-        return self.japic._(
+        self.japic._(
+            "Environment.Control.DetachEnvGroup", envName=env.name, envGroup=envGroup
+        )
+        self.clear_envs()
+
+    def addContainerEnvVars(
+        self, env: JelasticEnv, envVars: Dict, nodeGroup: str = "cp"
+    ) -> None:
+        """
+        Add (=overwrite) container Environment Variables in given nodeGroup
+        """
+        self.japic._(
             "Environment.Control.AddContainerEnvVars",
-            envName=envName,
-            vars=json.dumps(vars),
+            envName=env.name,
+            vars=json.dumps(envVars),
+            nodeGroup="cp",
+        )
+        self.clear_envs()
+
+    def redeployContainersByGroup(
+        self, env: JelasticEnv, dockertag: str, nodeGroup: str = "cp"
+    ) -> None:
+        """
+        Trigger redeployment of the containers of the given env, to the given dockertag, from the given nodeGroup
+        """
+        self.japic._(
+            "Environment.Control.RedeployContainersByGroup",
+            tag=dockertag,
             nodeGroup=nodeGroup,
-            nodeId=nodeId,
-        )
-
-    def AttachEnvGroup(
-        self, envName: str, envGroup: str = "", envGroups: str = ""
-    ) -> Dict:
-        """
-        Environment.Control.AttachEnvGroup Jelastic API call
-        """
-        return self.japic._(
-            "Environment.Control.AttachEnvGroup",
-            envName=envName,
-            envGroup=envGroup,
-            envGroups=envGroups,
-        )
-
-    def DetachEnvGroup(
-        self, envName: str, envGroup: str = "", envGroups: str = ""
-    ) -> Dict:
-        """
-        Environment.Control.DetachEnvGroup Jelastic API call
-        """
-        return self.japic._(
-            "Environment.Control.DetachEnvGroup",
-            envName=envName,
-            envGroup=envGroup,
-            envGroups=envGroups,
-        )
-
-    def RestartNodes(
-        self,
-        envName: str,
-        nodeGroup: str = "",
-        nodeId: str = "",
-        delay: int = 0,
-        isSequential: bool = None,
-    ) -> Dict:
-        """
-        Environment.Control.RestartNodes Jelastic API call
-        """
-        return self.japic._(
-            "Environment.Control.RestartNodes",
-            envName=envName,
-            nodeGroup=nodeGroup,
-            nodeId=nodeId,
-            delay=delay,
-            isSequential=isSequential,
+            envName=env.name,
         )

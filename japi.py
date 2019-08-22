@@ -77,6 +77,15 @@ class JelasticAPI:
         response = self.post("environment/control/rest/getenvs")
         return response["infos"]
 
+    def GetEnvInfo(self, envName: str) -> Dict:
+        """
+        environment.Control.GetEnvInfo Jelastic API call
+        """
+        response = self.post(
+            "environment/control/rest/getenvinfo", {"envName": envName}
+        )
+        return response["infos"]
+
     def RedeployContainersByGroup(
         self, envName: str, tag: str, nodeGroup: str = "cp"
     ) -> Dict:

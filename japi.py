@@ -15,14 +15,14 @@ class JelasticAPIException(Exception):
     pass
 
 
-class JelasticAPI:
+class JelasticAPIConnector:
     def __init__(self, apiurl: str, apitoken: str):
         """
         Get all needed data to connect to a Jelastic API
         """
         self.apiurl = apiurl
         self.apidata = {"session": apitoken}
-        self.logger = logging.getLogger("JelasticAPI")
+        self.logger = logging.getLogger("JelasticAPIConnector")
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:
         """
@@ -60,7 +60,7 @@ class JelasticAPI:
         uri_chunks = function.split(".")
         if len(uri_chunks) != 3:
             raise JelasticAPIException(
-                "apifunc function ({fnc}) doesn't match standard Jelastic function (Group.Class.Function)".format(
+                "Function ({fnc}) doesn't match standard Jelastic function (Group.Class.Function)".format(
                     fnc=function
                 )
             )
@@ -70,24 +70,33 @@ class JelasticAPI:
 
         return self._apicall(uri=uri, method="post", data=kwargs)
 
+
+class JelasticAPI:
+    def __init__(self, apiurl: str, apitoken: str):
+        """
+        Get all needed data to connect to a Jelastic API
+        """
+        self.japic = JelasticAPIConnector(apiurl=apiurl, apitoken=apitoken)
+        self.logger = logging.getLogger("JelasticAPI")
+
     def test(self) -> Dict:
         """
         Test that the connection to the Jelastic API works.
         """
-        return self._("Users.Account.GetUserInfo")
+        return self.japic._("Users.Account.GetUserInfo")
 
     def GetEnvs(self) -> Dict:
         """
         Environment.Control.GetEnvs Jelastic API call
         """
-        response = self._("Environment.Control.GetEnvs")
+        response = self.japic._("Environment.Control.GetEnvs")
         return response["infos"]
 
     def GetEnvInfo(self, envName: str) -> Dict:
         """
         Environment.Control.GetEnvInfo Jelastic API call
         """
-        return self._("Environment.Control.GetEnvInfo", envName=envName)
+        return self.japic._("Environment.Control.GetEnvInfo", envName=envName)
 
     def RedeployContainersByGroup(
         self, envName: str, tag: str, nodeGroup: str = "cp"
@@ -95,7 +104,7 @@ class JelasticAPI:
         """
         Environment.Control.RedeployContainersByGroup Jelastic API call
         """
-        response = self._(
+        response = self.japic._(
             "Environment.Control.RedeployContainersByGroup",
             tag=tag,
             nodeGroup=nodeGroup,
@@ -107,7 +116,7 @@ class JelasticAPI:
         """
         Environment.Control.CloneEnv Jelastic API call
         """
-        return self._(
+        return self.japic._(
             "Environment.Control.CloneEnv", srcEnvName=srcEnvName, dstEnvName=dstEnvName
         )
 
@@ -117,7 +126,7 @@ class JelasticAPI:
         """
         Environment.Control.AddContainerEnvVars Jelastic API call
         """
-        return self._(
+        return self.japic._(
             "Environment.Control.AddContainerEnvVars",
             envName=envName,
             vars=json.dumps(vars),
@@ -131,7 +140,7 @@ class JelasticAPI:
         """
         Environment.Control.AttachEnvGroup Jelastic API call
         """
-        return self._(
+        return self.japic._(
             "Environment.Control.AttachEnvGroup",
             envName=envName,
             envGroup=envGroup,
@@ -144,7 +153,7 @@ class JelasticAPI:
         """
         Environment.Control.DetachEnvGroup Jelastic API call
         """
-        return self._(
+        return self.japic._(
             "Environment.Control.DetachEnvGroup",
             envName=envName,
             envGroup=envGroup,
@@ -162,7 +171,7 @@ class JelasticAPI:
         """
         Environment.Control.RestartNodes Jelastic API call
         """
-        return self._(
+        return self.japic._(
             "Environment.Control.RestartNodes",
             envName=envName,
             nodeGroup=nodeGroup,

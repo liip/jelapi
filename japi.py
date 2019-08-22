@@ -50,101 +50,106 @@ class JelasticAPI:
             )
         return response
 
-    def get(self, uri: str, data: dict = {}) -> Dict:
+    def _(self, function: str, **kwargs) -> Dict:
         """
-        Launch a GET to the Jelastic API
+        Direct API call, converting function paths into URLs; allows:
+            JelasticAPI._('Environment.Control.GetEnvs')
         """
-        self.logger.info("GET {}, data:{}".format(uri, data))
-        return self._apicall(uri, "get", data)
+        self.logger.info("{fnc}({data})".format(fnc=function, data=kwargs))
+        # Determine function endpoint from the two-dotted string
+        uri_chunks = function.split(".")
+        if len(uri_chunks) != 3:
+            raise JelasticAPIException(
+                "apifunc function ({fnc}) doesn't match standard Jelastic function (Group.Class.Function)".format(
+                    fnc=function
+                )
+            )
+        uri = "{grp}/{cls}/REST/{fnc}".format(
+            grp=uri_chunks[0], cls=uri_chunks[1], fnc=uri_chunks[2]
+        ).lower()
 
-    def post(self, uri: str, data: dict = {}) -> Dict:
-        """
-        Launch a POST to the Jelastic API
-        """
-        self.logger.info("POST {}, data:{}".format(uri, data))
-        return self._apicall(uri, "post", data)
+        return self._apicall(uri=uri, method="post", data=kwargs)
 
     def test(self) -> Dict:
         """
         Test that the connection to the Jelastic API works.
         """
-        return self.post("/users/account/rest/getuserinfo")
+        return self._("Users.Account.GetUserInfo")
 
     def GetEnvs(self) -> Dict:
         """
-        environment.Control.GetEnvs Jelastic API call
+        Environment.Control.GetEnvs Jelastic API call
         """
-        response = self.post("environment/control/rest/getenvs")
+        response = self._("Environment.Control.GetEnvs")
         return response["infos"]
 
     def GetEnvInfo(self, envName: str) -> Dict:
         """
-        environment.Control.GetEnvInfo Jelastic API call
+        Environment.Control.GetEnvInfo Jelastic API call
         """
-        response = self.post(
-            "environment/control/rest/getenvinfo", {"envName": envName}
-        )
-        return response
+        return self._("Environment.Control.GetEnvInfo", envName=envName)
 
     def RedeployContainersByGroup(
         self, envName: str, tag: str, nodeGroup: str = "cp"
     ) -> Dict:
         """
-        environment.Control.RedeployContainersByGroup Jelastic API call
+        Environment.Control.RedeployContainersByGroup Jelastic API call
         """
-        response = self.post(
-            "/environment/control/rest/redeploycontainersbygroup",
-            {"tag": tag, "nodeGroup": nodeGroup, "envName": envName},
+        response = self._(
+            "Environment.Control.RedeployContainersByGroup",
+            tag=tag,
+            nodeGroup=nodeGroup,
+            envName=envName,
         )
         return response["responses"]
 
     def CloneEnv(self, srcEnvName: str, dstEnvName: str) -> Dict:
         """
-        environment.Control.CloneEnv Jelastic API call
+        Environment.Control.CloneEnv Jelastic API call
         """
-        return self.post(
-            "/environment/control/rest/cloneenv",
-            {"srcEnvName": srcEnvName, "dstEnvName": dstEnvName},
+        return self._(
+            "Environment.Control.CloneEnv", srcEnvName=srcEnvName, dstEnvName=dstEnvName
         )
 
     def AddContainerEnvVars(
         self, envName: str, nodeGroup: str = "", nodeId: str = "", vars: Dict = {}
     ) -> Dict:
         """
-        environment.Control.AddContainerEnvVars Jelastic API call
+        Environment.Control.AddContainerEnvVars Jelastic API call
         """
-        params = {"envName": envName, "vars": json.dumps(vars)}
-        if nodeGroup:
-            params["nodeGroup"] = nodeGroup
-        elif nodeId:
-            params["nodeId"] = nodeId
-        return self.post("/environment/control/rest/addcontainerenvvars", params)
+        return self._(
+            "Environment.Control.AddContainerEnvVars",
+            envName=envName,
+            vars=json.dumps(vars),
+            nodeGroup=nodeGroup,
+            nodeId=nodeId,
+        )
 
     def AttachEnvGroup(
         self, envName: str, envGroup: str = "", envGroups: str = ""
     ) -> Dict:
         """
-        environment.Control.AttachEnvGroup Jelastic API call
+        Environment.Control.AttachEnvGroup Jelastic API call
         """
-        params = {"envName": envName}
-        if envGroup:
-            params["envGroup"] = envGroup
-        elif envGroups:
-            params["envGroups"] = envGroups
-        return self.post("/environment/control/rest/attachenvgroup", params)
+        return self._(
+            "Environment.Control.AttachEnvGroup",
+            envName=envName,
+            envGroup=envGroup,
+            envGroups=envGroups,
+        )
 
     def DetachEnvGroup(
         self, envName: str, envGroup: str = "", envGroups: str = ""
     ) -> Dict:
         """
-        environment.Control.DetachEnvGroup Jelastic API call
+        Environment.Control.DetachEnvGroup Jelastic API call
         """
-        params = {"envName": envName}
-        if envGroup:
-            params["envGroup"] = envGroup
-        elif envGroups:
-            params["envGroups"] = envGroups
-        return self.post("/environment/control/rest/detachenvgroup", params)
+        return self._(
+            "Environment.Control.DetachEnvGroup",
+            envName=envName,
+            envGroup=envGroup,
+            envGroups=envGroups,
+        )
 
     def RestartNodes(
         self,
@@ -155,15 +160,13 @@ class JelasticAPI:
         isSequential: bool = None,
     ) -> Dict:
         """
-        environment.Control.RestartNodes Jelastic API call
+        Environment.Control.RestartNodes Jelastic API call
         """
-        params = {"envName": envName}
-        if nodeGroup:
-            params["nodeGroup"] = nodeGroup
-        elif nodeId:
-            params["nodeId"] = nodeId
-        if delay:
-            params["delay"] = delay
-        if isSequential is not None:
-            params["isSequential"] = isSequential
-        return self.post("/environment/control/rest/restartnodes", params)
+        return self._(
+            "Environment.Control.RestartNodes",
+            envName=envName,
+            nodeGroup=nodeGroup,
+            nodeId=nodeId,
+            delay=delay,
+            isSequential=isSequential,
+        )

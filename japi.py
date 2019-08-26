@@ -202,3 +202,16 @@ class JelasticAPI:
             nodeGroup=nodeGroup,
             envName=env.name,
         )
+
+    def removeAllExtIPs(self, env: JelasticEnv, nodeGroup: str = "bl") -> None:
+        """
+        Remove all external IPs from given environment to reduce cost (and break custom SSL)
+        """
+        for ipType in ["ipv4", "ipv6"]:
+            self.japic._(
+                "Environment.Control.SetExtIpCount",
+                envName=env.name,
+                nodeGroup=nodeGroup,
+                type=ipType,
+                count=0,
+            )

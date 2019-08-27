@@ -226,3 +226,14 @@ class JelasticAPI:
             envName=env.name,
             settings=json.dumps({"sslstate": sslstate}),
         )
+
+    def execCmdByGroup(self, env: JelasticEnv, nodeGroup: str, command: str) -> None:
+        """
+        Launch a specific command in a node group
+        """
+        self.japic._(
+            "Environment.Control.ExecCmdByGroup",
+            envName=env.name,
+            nodeGroup=nodeGroup,
+            commandList=json.dumps([{"command": command, "params": ""}]),
+        )

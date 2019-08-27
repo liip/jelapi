@@ -49,6 +49,7 @@ class JelasticAPIConnector:
                     method=method, uri=uri, result=response
                 )
             )
+        self.logger.debug(" response : {}".format(response))
         return response
 
     def _(self, function: str, **kwargs) -> Dict:
@@ -215,3 +216,13 @@ class JelasticAPI:
                 type=ipType,
                 count=0,
             )
+
+    def setBuiltInSSL(self, env: JelasticEnv, sslstate: bool) -> None:
+        """
+        Set built-in SSL at environment level.
+        """
+        self.japic._(
+            "Environment.Control.EditEnvSettings",
+            envName=env.name,
+            settings=json.dumps({"sslstate": sslstate}),
+        )

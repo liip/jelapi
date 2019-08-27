@@ -237,3 +237,13 @@ class JelasticAPI:
             nodeGroup=nodeGroup,
             commandList=json.dumps([{"command": command, "params": ""}]),
         )
+
+    def setEnvDisplayName(self, env: JelasticEnv, displayName: str) -> None:
+        """
+        Set the environment Display Name
+        """
+        self.japic._(
+            "Environment.Control.SetEnvDisplayName",
+            envName=env.name,
+            displayName=displayName,
+        )

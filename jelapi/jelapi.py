@@ -1,15 +1,9 @@
-import click
 import json
 import logging
-import os
-import requests
-import sys
-
 from functools import lru_cache
-from typing import Any, Dict, Tuple
-from pprint import pprint
+from typing import Dict
 
-logger = logging.getLogger("jelastic.py")
+import requests
 
 
 class JelasticAPIException(Exception):

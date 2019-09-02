@@ -1,7 +1,7 @@
 import json
 import logging
 from functools import lru_cache
-from typing import Dict
+from typing import Any, Dict, List
 
 import requests
 
@@ -77,7 +77,7 @@ class JelasticEnv:
         self.env = apidict
         self.envGroups = set(apidict["envGroups"])
 
-    def hasEnvGroups(self, envGroups: [str]) -> bool:
+    def hasEnvGroups(self, envGroups: List[str]) -> bool:
         """
         Check that this env has a set of envGroups
         """
@@ -85,7 +85,7 @@ class JelasticEnv:
 
     def getDockerNodes(
         self, dockerName: str, dockerTag: str = "latest", nodeGroup: str = "cp"
-    ) -> []:
+    ) -> List[Any]:
         """
         Get the jelastic Nodes that match the nodeGroup, dockerName and dockerTag
         """
@@ -115,9 +115,9 @@ class JelasticAPI:
         """
         return self.japic._("Users.Account.GetUserInfo")
 
-    @property
+    @property  # type: ignore
     @lru_cache(maxsize=None)
-    def envs(self) -> [JelasticEnv]:
+    def envs(self) -> List[JelasticEnv]:
         """
         Get the dict of environments from the API
         """
@@ -131,17 +131,17 @@ class JelasticAPI:
         """
         return JelasticEnv(self.japic._("Environment.Control.GetEnvInfo", envName=name))
 
-    def getEnvsByEnvGroups(self, envGroups: [str]) -> [JelasticEnv]:
+    def getEnvsByEnvGroups(self, envGroups: List[str]) -> List[JelasticEnv]:
         """
         Get environments that match the envGroups' array
         """
-        return [e for e in self.envs if e.hasEnvGroups(envGroups)]
+        return [e for e in self.envs if e.hasEnvGroups(envGroups)]  # type: ignore
 
     def clear_envs(self) -> None:
-        type(self).envs.fget.cache_clear()
+        type(self).envs.fget.cache_clear()  #type: ignore
         self.getEnvByName.cache_clear()
 
-    def cloneEnv(self, sourceEnv: JelasticEnv, destEnvName: str) -> None:
+    def cloneEnv(self, sourceEnv: JelasticEnv, destEnvName: str) -> JelasticEnv:
         """
         Clone source environment to dstEnvName.
         """

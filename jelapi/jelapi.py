@@ -74,6 +74,7 @@ class JelasticEnv:
 
     def __init__(self, apidict: Dict) -> None:
         self.name = apidict["env"]["envName"]
+        self.id = apidict["env"]["appid"]
         self.env = apidict
         self.envGroups = set(apidict["envGroups"])
 
@@ -204,8 +205,8 @@ class JelasticAPI:
         """
         for ipType in ["ipv4", "ipv6"]:
             self.japic._(
-                "Environment.Control.SetExtIpCount",
-                envName=env.name,
+                "Environment.Binder.SetExtIpCount",
+                appid=env.id,
                 nodeGroup=nodeGroup,
                 type=ipType,
                 count=0,

@@ -186,6 +186,18 @@ class JelasticAPI:
         )
         self.clear_envs()
 
+    def getContainerEnvVarsByGroup(
+        self, env: JelasticEnv, nodeGroup: str = "cp"
+    ) -> None:
+        """
+        Add (=overwrite) container Environment Variables in given nodeGroup
+        """
+        return self.japic._(
+            "Environment.Control.GetContainerEnvVarsByGroup",
+            envName=env.name,
+            nodeGroup="cp",
+        )
+
     def redeployContainersByGroup(
         self, env: JelasticEnv, dockertag: str, nodeGroup: str = "cp"
     ) -> None:

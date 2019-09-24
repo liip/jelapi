@@ -154,6 +154,14 @@ class JelasticAPI:
         self.clear_envs()
         return self.getEnvByName(name=destEnvName)
 
+    def deleteEnv(self, env: JelasticEnv, **kwargs) -> None:
+        """
+        Delete environment, provided that we gave it the right argument as kwarg, not just a boolean
+        """
+        if kwargs.get("reallySure", False):
+            self.japic._("Environment.Control.DeleteEnv", envName=env.name)
+            self.clear_envs()
+
     def attachEnvGroup(self, env: JelasticEnv, envGroup: str) -> None:
         """
         Attach an EnvGroup to a JelasticEnv

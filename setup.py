@@ -21,6 +21,8 @@ setup(
     packages=find_packages(),
     install_requires=["requests>=2.16.0"],
     classifiers=[
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
@@ -29,5 +31,5 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Development Status :: 4 - Beta",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.5",
 )

@@ -1,4 +1,7 @@
 # Changelog
+## 0.0.5
+### Changed
+- Python version required changed to 3.5
 
 ## 0.0.4
 ### Added

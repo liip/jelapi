@@ -84,18 +84,15 @@ class JelasticEnv:
         """
         return set(envGroups).issubset(self.envGroups)
 
-    def getDockerNodes(
-        self, dockerName: str, dockerTag: str = "latest", nodeGroup: str = "cp"
-    ) -> List[Any]:
+    def getDockerNodes(self, dockerName: str, dockerTag: str = "latest") -> List[Any]:
         """
-        Get the jelastic Nodes that match the nodeGroup, dockerName and dockerTag
+        Get the jelastic Nodes that match the dockerName and dockerTag
         """
         return [
             node
             for node in self.env["nodes"]
             if (
-                node["nodeGroup"] == nodeGroup
-                and node["nodeType"] == "docker"
+                node["nodeType"] == "docker"
                 and "customitem" in node
                 and node["customitem"]["dockerName"] == dockerName
                 and node["customitem"]["dockerTag"] == dockerTag

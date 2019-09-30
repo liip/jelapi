@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.6
+### Changed
+- Unrestrict getDockerNodes from nodeGroup: look in all nodes
+
 ## 0.0.5
 ### Changed
 - Python version required changed to 3.5

@@ -259,3 +259,21 @@ class JelasticAPI:
             envName=env.name,
             displayName=displayName,
         )
+
+    def sleepEnv(self, env: JelasticEnv) -> None:
+        """
+        Gets running environment asleep
+        """
+        self.japic._("Environment.Control.SleepEnv", envName=env.name)
+
+    def startEnv(self, env: JelasticEnv) -> None:
+        """
+        Starts environment if it is stopped
+        """
+        self.japic._("Environment.Control.StartEnv", envName=env.name)
+
+    def stopEnv(self, env: JelasticEnv) -> None:
+        """
+        Stops an environment if it is running
+        """
+        self.japic._("Environment.Control.StopEnv", envName=env.name)

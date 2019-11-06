@@ -195,7 +195,7 @@ class JelasticAPI:
         self, env: JelasticEnv, nodeGroup: str = "cp"
     ) -> None:
         """
-        Add (=overwrite) container Environment Variables in given nodeGroup
+        Get container Environment Variables in given nodeGroup
         """
         return self.japic._(
             "Environment.Control.GetContainerEnvVarsByGroup",

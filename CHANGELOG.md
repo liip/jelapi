@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.7
+### Changed
+- Add startEnv, stopEnv and sleepEnv
+
 ## 0.0.6
 ### Changed
 - Unrestrict getDockerNodes from nodeGroup: look in all nodes

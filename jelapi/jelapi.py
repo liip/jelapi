@@ -229,6 +229,19 @@ class JelasticAPI:
                 count=0,
             )
 
+    def swapExtIP(self, env: JelasticEnv, source_node_id: str, target_node_id: str, ip: str) -> None:
+        """
+        Swap an external ip from a node to another one
+        """
+        self.japic._(
+            "Environment.Binder.SwapExtIps",
+            envName=env.name,
+            sourceNodeId=source_node_id,
+            targetNodeId=target_node_id,
+            sourceIp=ip,
+            targetIp=ip
+        )
+
     def setBuiltInSSL(self, env: JelasticEnv, sslstate: bool) -> None:
         """
         Set built-in SSL at environment level.

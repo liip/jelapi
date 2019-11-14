@@ -1,4 +1,8 @@
 # Changelog
+## 0.0.8
+### Added
+- Add SwapExtIps
+
 ## 0.0.7
 ### Changed
 - Add startEnv, stopEnv and sleepEnv

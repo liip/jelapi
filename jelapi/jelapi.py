@@ -187,7 +187,7 @@ class JelasticAPI:
             "Environment.Control.AddContainerEnvVars",
             envName=env.name,
             vars=json.dumps(envVars),
-            nodeGroup="cp",
+            nodeGroup=nodeGroup,
         )
         self.clear_envs()
 

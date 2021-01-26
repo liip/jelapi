@@ -2,7 +2,7 @@ import json
 import logging
 from functools import lru_cache
 from typing import Any, Dict, List
-
+import time
 import requests
 
 
@@ -290,3 +290,19 @@ class JelasticAPI:
         Stops an environment if it is running
         """
         self.japic._("Environment.Control.StopEnv", envName=env.name)
+
+    def getExtendedAccountBillingHistoryByPeriod(self, env: JelasticEnv, start_time: str, end_time: str) -> Dict:
+        """
+        Get the billing details for an environment
+        start_time and end_time can have the following formats: 2021-01-19, 2021-01-19T00:00:00
+        """
+        # adapt the time to reflect the timezone of the location of the script
+        time_offset = int(time.timezone*-1/60)
+        return self.japic._(
+            "Billing.Account.GetExtendedAccountBillingHistoryByPeriod",
+            appId=env.id,
+            starttime=start_time,
+            endtime=end_time,
+            targetAppid=env.id,
+            timeOffset=time_offset
+        )

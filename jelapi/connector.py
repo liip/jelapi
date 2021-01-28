@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-import requests
+import httpx
 
 from .exceptions import JelasticAPIException
 
@@ -14,6 +14,7 @@ class JelasticAPIConnector:
         self.apiurl = apiurl
         self.apidata = {"session": apitoken}
         self.logger = logging.getLogger("JelasticAPIConnector")
+        self.client = httpx.Client()
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:
         """
@@ -22,10 +23,10 @@ class JelasticAPIConnector:
         # Make sure we have our session in
         self.logger.debug("_apicall {} {}, data:{}".format(method.upper(), uri, data))
         data.update(self.apidata)
-        r = getattr(requests, method)(
-            "{url}{uri}".format(url=self.apiurl, uri=uri), data
+        r = getattr(self.client, method)(
+            "{url}{uri}".format(url=self.apiurl, uri=uri), data=data
         )
-        if r.status_code != requests.codes.ok:
+        if r.status_code != httpx.codes.ok:
             raise JelasticAPIException(
                 "{method} to {uri} failed with HTTP code {code}".format(
                     method=method, uri=uri, code=r.status_code

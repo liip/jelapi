@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 from jelapi import __version__
 
-install_requires = ["requests>=2.16.0"]
+install_requires = ["httpx[http2]"]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
-    install_requires=["requests>=2.16.0"],
+    install_requires=["httpx[http2]"],
     tests_require=["pytest-cov"],
     classifiers=[
         "Programming Language :: Python :: 3",

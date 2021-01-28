@@ -2,6 +2,10 @@
 ## 0.0.8
 ### Added
 - Add SwapExtIps
+- Add getExtendedAccountBillingHistoryByPeriod
+### Updated
+- Split the files for later refactor
+- Added simple pytest & code coverage
 
 ## 0.0.7
 ### Changed

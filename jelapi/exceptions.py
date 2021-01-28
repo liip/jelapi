@@ -1,0 +1,2 @@
+class JelasticAPIException(Exception):
+    pass

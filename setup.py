@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from setuptools import find_packages, setup
+
 from jelapi import __version__
 
 install_requires = ["requests>=2.16.0"]
@@ -20,7 +21,7 @@ setup(
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
     install_requires=["requests>=2.16.0"],
-    tests_require=['pytest-cov'],
+    tests_require=["pytest-cov"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",

@@ -1,4 +1,7 @@
 # Changelog
+## UNRELEASED
+- Specify supported Python versions to 3.5->3.9
+
 ## 0.0.9
 ### Added
 - Add SwapExtIps

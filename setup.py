@@ -20,6 +20,7 @@ setup(
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
     install_requires=["requests>=2.16.0"],
+    tests_require=['pytest-cov'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",

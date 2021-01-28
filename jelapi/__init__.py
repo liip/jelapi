@@ -2,5 +2,5 @@
 
 __version__ = "0.0.8"
 
-from .exceptions import JelasticAPIException
-from .jelapi import JelasticAPI
+from .exceptions import JelasticAPIException  # noqa
+from .jelapi import JelasticAPI  # noqa

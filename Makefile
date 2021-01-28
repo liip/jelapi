@@ -2,8 +2,8 @@ all: format lint
 
 .PHONY: format
 format:  # Fix some linting issues in the project
-	black jelapi
-	isort jelapi
+	black setup.py jelapi
+	isort setup.py jelapi
 
 .PHONY: lint
 lint:  # Show linting issues in the project

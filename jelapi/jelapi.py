@@ -1,8 +1,9 @@
 import json
 import logging
+import time
 from functools import lru_cache
 from typing import Any, Dict, List
-import time
+
 import requests
 
 
@@ -136,7 +137,7 @@ class JelasticAPI:
         return [e for e in self.envs if e.hasEnvGroups(envGroups)]  # type: ignore
 
     def clear_envs(self) -> None:
-        type(self).envs.fget.cache_clear()  #type: ignore
+        type(self).envs.fget.cache_clear()  # type: ignore
         self.getEnvByName.cache_clear()
 
     def cloneEnv(self, sourceEnv: JelasticEnv, destEnvName: str) -> JelasticEnv:
@@ -229,7 +230,9 @@ class JelasticAPI:
                 count=0,
             )
 
-    def swapExtIP(self, env: JelasticEnv, source_node_id: str, target_node_id: str, ip: str) -> None:
+    def swapExtIP(
+        self, env: JelasticEnv, source_node_id: str, target_node_id: str, ip: str
+    ) -> None:
         """
         Swap an external ip from a node to another one
         """
@@ -239,7 +242,7 @@ class JelasticAPI:
             sourceNodeId=source_node_id,
             targetNodeId=target_node_id,
             sourceIp=ip,
-            targetIp=ip
+            targetIp=ip,
         )
 
     def setBuiltInSSL(self, env: JelasticEnv, sslstate: bool) -> None:
@@ -291,18 +294,20 @@ class JelasticAPI:
         """
         self.japic._("Environment.Control.StopEnv", envName=env.name)
 
-    def getExtendedAccountBillingHistoryByPeriod(self, env: JelasticEnv, start_time: str, end_time: str) -> Dict:
+    def getExtendedAccountBillingHistoryByPeriod(
+        self, env: JelasticEnv, start_time: str, end_time: str
+    ) -> Dict:
         """
         Get the billing details for an environment
         start_time and end_time can have the following formats: 2021-01-19, 2021-01-19T00:00:00
         """
         # adapt the time to reflect the timezone of the location of the script
-        time_offset = int(time.timezone*-1/60)
+        time_offset = int(time.timezone * -1 / 60)
         return self.japic._(
             "Billing.Account.GetExtendedAccountBillingHistoryByPeriod",
             appId=env.id,
             starttime=start_time,
             endtime=end_time,
             targetAppid=env.id,
-            timeOffset=time_offset
+            timeOffset=time_offset,
         )

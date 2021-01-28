@@ -20,8 +20,12 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
-    install_requires=["httpx[http2]"],
-    tests_require=["pytest-cov"],
+    install_requires=[
+        "httpx[http2]",
+    ],
+    extras_require={
+        "test": ["pytest-cov"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",

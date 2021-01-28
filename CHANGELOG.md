@@ -1,5 +1,5 @@
 # Changelog
-## 0.0.8
+## 0.0.9
 ### Added
 - Add SwapExtIps
 - Add getExtendedAccountBillingHistoryByPeriod

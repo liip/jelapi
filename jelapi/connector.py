@@ -26,7 +26,7 @@ class JelasticAPIConnector:
         r = getattr(self.client, method)(
             "{url}{uri}".format(url=self.apiurl, uri=uri), data=data
         )
-        if r.status_code != httpx.codes.ok:
+        if r.status_code != httpx.codes.OK:
             raise JelasticAPIException(
                 "{method} to {uri} failed with HTTP code {code}".format(
                     method=method, uri=uri, code=r.status_code

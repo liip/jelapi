@@ -11,7 +11,8 @@ class JelasticAPI:
 
     def getEnvironment(self, shortdomain: str) -> JelasticEnvironment:
         return JelasticEnvironment(
+            api_connector=self._connector,
             from_GetEnvInfo=self._connector._(
                 "Environment.Control.GetEnvInfo", envName=shortdomain
-            )
+            ),
         )

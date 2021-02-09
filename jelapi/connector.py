@@ -14,7 +14,8 @@ class JelasticAPIConnector:
         self.apiurl = apiurl
         self.apidata = {"session": apitoken}
         self.logger = logging.getLogger("JelasticAPIConnector")
-        self.client = httpx.Client()
+        # httpx client. Default to no timeouts, as the Jelastic API is _synchronous_.
+        self.client = httpx.Client(timeout=None)
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:
         """

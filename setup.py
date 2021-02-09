@@ -2,7 +2,7 @@
 
 from setuptools import find_packages, setup
 
-from jelapi import __version__
+__version__ = "0.0.9"
 
 install_requires = ["httpx[http2]"]
 
@@ -20,9 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
-    install_requires=[
-        "httpx[http2]",
-    ],
+    install_requires=install_requires,
     extras_require={
         "test": ["pytest-cov"],
     },

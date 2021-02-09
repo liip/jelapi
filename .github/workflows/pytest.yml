@@ -1,9 +1,9 @@
-name: Python package
+name: Lint and Tests
 
 on: [push]
 
 jobs:
-  build:
+  pytest:
     runs-on: ubuntu-latest
     strategy:
       matrix:

@@ -5,6 +5,7 @@ from setuptools import find_packages, setup
 __version__ = "0.0.9"
 
 install_requires = ["httpx[http2]"]
+test_requires = ["respx", "pytest-cov"]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -22,7 +23,7 @@ setup(
     packages=find_packages(),
     install_requires=install_requires,
     extras_require={
-        "test": ["pytest-cov"],
+        "test": test_requires,
     },
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -55,6 +55,13 @@ class _JelasticObject(ABC):
     def save_to_jelastic(self) -> None:
         """
         If needed, do what's needed to save the object to the API
+        DO NOT update the object. That'd done in refresh_from_api
+        """
+
+    @abstractmethod
+    def refresh_from_api(self) -> None:
+        """
+        Refresh current object from the API
         """
 
     def save(self) -> bool:
@@ -62,7 +69,10 @@ class _JelasticObject(ABC):
         Save the changes staged in attributes
         """
         if self.differs_from_api():
+            # Implements the saving of the changes to Jelastic
             self.save_to_jelastic()
+            # Fetches, to verify changes were proceeded with correctly
+            self.refresh_from_api()
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
         assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."
         assert not self.differs_from_api(), assertmsg
@@ -83,16 +93,11 @@ class JelasticEnvironment(_JelasticObject):
         "domain",
     ]
 
-    def __init__(self, *, api_connector, env_from_GetEnvInfo, envGroups) -> None:
+    def _update_from_getEnvInfo(self, env_from_GetEnvInfo, envGroups) -> None:
         """
-        Construct a JelasticEnvironment from various data sources
+        Construct/Update our object from the structure
         """
-        super().__init__(api_connector=api_connector)
-
         if env_from_GetEnvInfo:
-            """
-            Construct our object from the structure
-            """
             # Allow exploration of the returned object, but don't act on it.
             self._env = env_from_GetEnvInfo
             # Read-only attributes
@@ -108,6 +113,20 @@ class JelasticEnvironment(_JelasticObject):
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
+    def __init__(self, *, api_connector, env_from_GetEnvInfo, envGroups) -> None:
+        """
+        Construct a JelasticEnvironment from various data sources
+        """
+        super().__init__(api_connector=api_connector)
+
+        self._update_from_getEnvInfo(env_from_GetEnvInfo, envGroups)
+
+    def refresh_from_api(self) -> None:
+        response = self._api_connector._(
+            "Environment.Control.GetEnvInfo", envName=self.envName
+        )
+        self._update_from_getEnvInfo(response["env"], response["envGroups"])
+
     def __str__(self) -> str:
         return f"JelasticEnvironment '{self.envName}' <https://{self.domain}>"
 
@@ -121,8 +140,6 @@ class JelasticEnvironment(_JelasticObject):
                 envName=self.envName,
                 displayName=self.displayName,
             )
-            # Assume that it worked; failures are _very_ verbose
-            self._from_api["displayName"] = deepcopy(self.displayName)
 
     def _save_envGroups(self):
         """
@@ -134,8 +151,6 @@ class JelasticEnvironment(_JelasticObject):
                 envName=self.envName,
                 envGroups=jsondumps(self.envGroups),
             )
-            # Assume that it worked; failures are _very_ verbose
-            self._from_api["envGroups"] = deepcopy(self.envGroups)
 
     def save_to_jelastic(self):
         self._save_displayName()

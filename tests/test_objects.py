@@ -89,11 +89,12 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     assert jelenv.differs_from_api()
 
 
-def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API():
+def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API_twice():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     api_connector = Mock()
+    api_connector._ = Mock(return_value={"env": get_standard_env(), "envGroups": []})
 
     jelenv = JelasticEnvironment(
         api_connector=api_connector,
@@ -102,7 +103,7 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API():
     )
     jelenv.displayName = "different displayName"
     jelenv.save()
-    api_connector._.assert_called_once()
+    api_connector._.assert_called()
 
     api_connector.reset_mock()
 
@@ -131,6 +132,7 @@ def test_JelasticEnvironment_envGroups_change_and_save_will_talk_to_API():
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     api_connector = Mock()
+    api_connector._ = Mock(return_value={"env": get_standard_env(), "envGroups": []})
 
     jelenv = JelasticEnvironment(
         api_connector=api_connector,
@@ -142,7 +144,7 @@ def test_JelasticEnvironment_envGroups_change_and_save_will_talk_to_API():
     )
     jelenv.envGroups.append("C")
     jelenv.save()
-    api_connector._.assert_called_once()
+    api_connector._.assert_called()
 
     api_connector.reset_mock()
 

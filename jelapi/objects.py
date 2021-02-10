@@ -36,7 +36,7 @@ class _JelasticObject(ABC):
         Override setter to forbid updating the attributes we cannot save in Jelastic.
         """
         if name in self._readonly_jelattributes:
-            raise AttributeError(f"'{name}' is read only in this JelasticObject.")
+            raise AttributeError(f"{self.__class__.__name__}: '{name}' is read only.")
         object.__setattr__(self, name, value)
 
     def copy_self_as_from_api(self) -> None:
@@ -65,7 +65,8 @@ class _JelasticObject(ABC):
         if self.differs_from_api():
             self.save_to_jelastic()
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
-        assert not self.differs_from_api()
+        assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."
+        assert not self.differs_from_api(), assertmsg
 
 
 class JelasticEnvironment(_JelasticObject):

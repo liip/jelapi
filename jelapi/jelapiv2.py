@@ -19,4 +19,5 @@ class JelasticAPI:
         return JelasticEnvironment(
             api_connector=self._connector,
             env_from_GetEnvInfo=response["env"],
+            envGroups=response["envGroups"],
         )

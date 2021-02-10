@@ -1,9 +1,10 @@
-import respx
-from httpx import codes, Response
 from unittest.mock import MagicMock
 
-from jelapi.jelapiv2 import JelasticAPI
+import respx
+from httpx import Response, codes
+
 from jelapi.connector import JelasticAPIConnector
+from jelapi.jelapiv2 import JelasticAPI
 from jelapi.objects import JelasticEnvironment
 
 APIURL = "https://api.example.org/"
@@ -18,6 +19,10 @@ def get_standard_envinfo():
             "envName": "envName",
             "displayName": "initial displayName",
         },
+        "envGroups": [
+            "envGroup1",
+            "envGroup2",
+        ],
     }
 
 

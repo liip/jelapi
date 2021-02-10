@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from json import dumps as jsondumps
 
 from .exceptions import JelasticObjectException
 
@@ -76,6 +77,7 @@ class JelasticEnvironment(_JelasticObject):
 
     _jelattributes = [
         "displayName",
+        "envGroups",
     ]
     _readonly_jelattributes = [
         "envName",
@@ -83,7 +85,7 @@ class JelasticEnvironment(_JelasticObject):
         "domain",
     ]
 
-    def __init__(self, *, api_connector, env_from_GetEnvInfo) -> None:
+    def __init__(self, *, api_connector, env_from_GetEnvInfo, envGroups) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """
@@ -103,6 +105,8 @@ class JelasticEnvironment(_JelasticObject):
             # Read-write attributes
             self.displayName = self._env["displayName"]
 
+        self.envGroups = envGroups
+
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
@@ -120,7 +124,21 @@ class JelasticEnvironment(_JelasticObject):
                 displayName=self.displayName,
             )
             # Assume that it worked; failures are _very_ verbose
-            self._from_api["displayName"] = self.displayName
+            self._from_api["displayName"] = deepcopy(self.displayName)
+
+    def _save_envGroups(self):
+        """
+        Propagate the envGroups change to the Jelastic API
+        """
+        if self.envGroups != self._from_api["envGroups"]:
+            self._api_connector._(
+                "Environment.Control.SetEnvGroup",
+                envName=self.envName,
+                envGroups=jsondumps(self.envGroups),
+            )
+            # Assume that it worked; failures are _very_ verbose
+            self._from_api["envGroups"] = deepcopy(self.envGroups)
 
     def save_to_jelastic(self):
         self._save_displayName()
+        self._save_envGroups()

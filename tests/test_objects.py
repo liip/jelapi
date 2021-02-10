@@ -2,7 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from jelapi.objects import JelasticEnvironment, _JelasticObject
+from jelapi.objects import JelasticEnvironment
+from jelapi.objects.jelasticobject import _JelasticObject
 
 APIURL = "https://api.example.org/"
 

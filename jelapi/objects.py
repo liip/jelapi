@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 from .exceptions import JelasticObjectException
 
@@ -44,7 +45,7 @@ class _JelasticObject(ABC):
         """
         # Verify the attributes got copied correctly
         for jelattribute in self._jelattributes:
-            self._from_api[jelattribute] = getattr(self, jelattribute)
+            self._from_api[jelattribute] = deepcopy(getattr(self, jelattribute))
 
     def differs_from_api(self) -> bool:
         for jelattribute in self._jelattributes:

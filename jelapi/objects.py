@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from enum import Enum
 from json import dumps as jsondumps
 
 
@@ -45,6 +46,7 @@ class _JelasticObject(ABC):
         # Verify the attributes got copied correctly
         for jelattribute in self._jelattributes:
             self._from_api[jelattribute] = deepcopy(getattr(self, jelattribute))
+        # TODO Add an "updated_at" attribute
 
     def differs_from_api(self) -> bool:
         for jelattribute in self._jelattributes:
@@ -86,12 +88,29 @@ class JelasticEnvironment(_JelasticObject):
     _jelattributes = [
         "displayName",
         "envGroups",
+        "status",
     ]
     _readonly_jelattributes = [
         "envName",
         "shortdomain",
         "domain",
     ]
+
+    class Status(Enum):
+        """
+        Standard statuses
+        Latest reference https://github.com/jelastic/localizations/blob/master/English/5.4/%5Blang-en.js%5D#L999
+        """
+
+        UNKNOWN = 0
+        RUNNING = 1
+        STOPPED = 2
+        LAUNCHING = 3
+        SLEEPING = 4
+        SUSPENDED = 5
+        CREATING = 6
+        CLONING = 7
+        UPDATING = 12
 
     def _update_from_getEnvInfo(self, env_from_GetEnvInfo, envGroups) -> None:
         """
@@ -107,6 +126,14 @@ class JelasticEnvironment(_JelasticObject):
 
             # Read-write attributes
             self.displayName = self._env["displayName"]
+            self.status = next(
+                (
+                    status
+                    for status in self.Status
+                    if status.value == self._env["status"]
+                ),
+                self.Status.UNKNOWN,
+            )
 
         self.envGroups = envGroups
 

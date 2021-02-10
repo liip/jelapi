@@ -13,6 +13,7 @@ def get_standard_env():
         "domain": "domain",
         "envName": "envName",
         "displayName": "initial displayName",
+        "status": JelasticEnvironment.Status.RUNNING.value,
     }
 
 

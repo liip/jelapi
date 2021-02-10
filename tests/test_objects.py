@@ -8,15 +8,12 @@ from jelapi.objects import JelasticEnvironment, _JelasticObject
 APIURL = "https://api.example.org/"
 
 
-def get_standard_envinfo():
+def get_standard_env():
     return {
-        "result": 0,
-        "env": {
-            "shortdomain": "shortdomain",
-            "domain": "domain",
-            "envName": "envName",
-            "displayName": "initial displayName",
-        },
+        "shortdomain": "shortdomain",
+        "domain": "domain",
+        "envName": "envName",
+        "displayName": "initial displayName",
     }
 
 
@@ -32,31 +29,17 @@ def test_JelasticEnvironment_with_enough_data():
     """
     JelasticEnvironment can be instantiated
     """
-    JelasticEnvironment(api_connector="", from_GetEnvInfo=get_standard_envinfo())
-
-
-def test_JelasticEnvironment_with_missing_result():
-    """
-    JelasticEnvironment cannot be instantiated with partial envInfo
-    """
-    envinfo_truncated = get_standard_envinfo()
-    del envinfo_truncated["result"]
-    with pytest.raises(JelasticObjectException):
-        JelasticEnvironment(api_connector="", from_GetEnvInfo=envinfo_truncated)
-    # It also fails with non-zero result
-    envinfo_truncated["result"] = 2
-    with pytest.raises(JelasticObjectException):
-        JelasticEnvironment(api_connector="", from_GetEnvInfo=envinfo_truncated)
+    JelasticEnvironment(api_connector="", env_from_GetEnvInfo=get_standard_env())
 
 
 def test_JelasticEnvironment_with_missing_data():
     """
     JelasticEnvironment cannot be instantiated with partial envInfo
     """
-    envinfo_truncated = get_standard_envinfo()
-    del envinfo_truncated["env"]["displayName"]
+    env_truncated = get_standard_env()
+    del env_truncated["displayName"]
     with pytest.raises(KeyError):
-        JelasticEnvironment(api_connector="", from_GetEnvInfo=envinfo_truncated)
+        JelasticEnvironment(api_connector="", env_from_GetEnvInfo=env_truncated)
 
 
 def test_JelasticEnvironment_cannot_set_some_ro_attributes():
@@ -64,7 +47,7 @@ def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     jelenv = JelasticEnvironment(
-        api_connector="", from_GetEnvInfo=get_standard_envinfo()
+        api_connector="", env_from_GetEnvInfo=get_standard_env()
     )
     for attr in ["shortdomain", "domain", "envName"]:
         assert getattr(jelenv, attr)
@@ -77,7 +60,7 @@ def test_JelasticEnvironment_doesnt_differ_from_api_initially():
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     jelenv = JelasticEnvironment(
-        api_connector="", from_GetEnvInfo=get_standard_envinfo()
+        api_connector="", env_from_GetEnvInfo=get_standard_env()
     )
     assert not jelenv.differs_from_api()
 
@@ -87,7 +70,7 @@ def test_JelasticEnvironment_str_rep():
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     jelenv = JelasticEnvironment(
-        api_connector="", from_GetEnvInfo=get_standard_envinfo()
+        api_connector="", env_from_GetEnvInfo=get_standard_env()
     )
     assert str(jelenv) == "JelasticEnvironment 'envName' <https://domain>"
 
@@ -97,7 +80,7 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
     jelenv = JelasticEnvironment(
-        api_connector="", from_GetEnvInfo=get_standard_envinfo()
+        api_connector="", env_from_GetEnvInfo=get_standard_env()
     )
     jelenv.displayName = "different displayName"
     assert jelenv.differs_from_api()
@@ -110,7 +93,7 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API():
     api_connector = Mock()
 
     jelenv = JelasticEnvironment(
-        api_connector=api_connector, from_GetEnvInfo=get_standard_envinfo()
+        api_connector=api_connector, env_from_GetEnvInfo=get_standard_env()
     )
     jelenv.displayName = "different displayName"
     jelenv.save()

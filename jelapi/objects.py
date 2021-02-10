@@ -81,30 +81,25 @@ class JelasticEnvironment(_JelasticObject):
         "domain",
     ]
 
-    def __init__(self, *, api_connector, from_GetEnvInfo) -> None:
+    def __init__(self, *, api_connector, env_from_GetEnvInfo) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """
         super().__init__(api_connector=api_connector)
 
-        if from_GetEnvInfo:
-            if "result" not in from_GetEnvInfo:
-                raise JelasticObjectException("'result' not returned from GetEnvInfo.")
-            if from_GetEnvInfo["result"] != 0:
-                raise JelasticObjectException("'result' not 0 from GetEnvInfo.")
-
+        if env_from_GetEnvInfo:
             """
             Construct our object from the structure
             """
             # Allow exploration of the returned object, but don't act on it.
-            self._envinfo = from_GetEnvInfo
+            self._env = env_from_GetEnvInfo
             # Read-only attributes
-            self._shortdomain = self._envinfo["env"]["shortdomain"]
-            self._envName = self._envinfo["env"]["envName"]
-            self._domain = self._envinfo["env"]["domain"]
+            self._shortdomain = self._env["shortdomain"]
+            self._envName = self._env["envName"]
+            self._domain = self._env["domain"]
 
             # Read-write attributes
-            self.displayName = self._envinfo["env"]["displayName"]
+            self.displayName = self._env["displayName"]
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()

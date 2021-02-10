@@ -10,9 +10,13 @@ class JelasticAPI:
         self._connector = JelasticAPIConnector(apiurl=apiurl, apitoken=apitoken)
 
     def getEnvironment(self, envName: str) -> JelasticEnvironment:
+        """
+        Get environment by envName
+        """
+        # The connector will fail if response is not 0
+        response = self._connector._("Environment.Control.GetEnvInfo", envName=envName)
+
         return JelasticEnvironment(
             api_connector=self._connector,
-            from_GetEnvInfo=self._connector._(
-                "Environment.Control.GetEnvInfo", envName=envName
-            ),
+            env_from_GetEnvInfo=response["env"],
         )

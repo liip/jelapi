@@ -2,7 +2,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from jelapi.exceptions import JelasticObjectException
 from jelapi.objects import JelasticEnvironment, _JelasticObject
 
 APIURL = "https://api.example.org/"

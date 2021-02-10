@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from json import dumps as jsondumps
 
-from .exceptions import JelasticObjectException
-
 
 class _JelasticObject(ABC):
     """

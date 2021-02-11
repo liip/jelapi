@@ -1,5 +1,4 @@
 import jelapi
-
 from jelapi.connector import JelasticAPIConnector
 
 

@@ -1,8 +1,8 @@
 from enum import Enum
 from json import dumps as jsondumps
 
-from .jelasticobject import _JelasticObject
 from ..exceptions import JelasticObjectException
+from .jelasticobject import _JelasticObject
 
 
 class JelasticEnvironment(_JelasticObject):

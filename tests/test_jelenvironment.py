@@ -1,12 +1,8 @@
-import respx
-from httpx import Response, codes
-
 from unittest.mock import Mock
 
 import pytest
 
 from jelapi import api_connector as jelapic
-
 from jelapi.objects import JelasticEnvironment
 from jelapi.objects.jelasticobject import _JelasticObject
 

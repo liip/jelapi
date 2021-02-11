@@ -37,6 +37,17 @@ class JelasticEnvironment(_JelasticObject):
         CLONING = 7
         UPDATING = 12
 
+    @staticmethod
+    def get(envName: str):
+        """
+        Static method to get one environment
+        """
+        self.api._("Environment.Control.GetEnvInfo", envName=envName)
+        return JelasticEnvironment(
+            env_from_GetEnvInfo=response["env"],
+            envGroups=response["envGroups"],
+        )
+
     def _update_from_getEnvInfo(self, env_from_GetEnvInfo, envGroups) -> None:
         """
         Construct/Update our object from the structure

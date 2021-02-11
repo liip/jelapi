@@ -83,3 +83,10 @@ class _JelasticObject(ABC):
         from .. import api_connector as jelapi_connector
 
         return jelapi_connector()
+
+    @staticmethod
+    @abstractmethod
+    def get(*kwargs):
+        """
+        Static method to get a instance of this class
+        """

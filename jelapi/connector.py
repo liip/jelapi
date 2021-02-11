@@ -13,9 +13,18 @@ class JelasticAPIConnector:
         """
         self.apiurl = apiurl
         self.apidata = {"session": apitoken}
-        self.logger = logging.getLogger("JelasticAPIConnector")
+        self.logger = logging.getLogger(self.__class__.__name__)
         # httpx client. Default to no timeouts, as the Jelastic API is _synchronous_.
         self.client = httpx.Client(timeout=None)
+
+    def is_functional(self) -> bool:
+        """
+        Whether this was meaningfully instantiated
+        """
+        try:
+            return len(self.apiurl) > 0 and len(self.apidata["session"]) > 0
+        except TypeError:
+            return False
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:
         """

@@ -42,7 +42,12 @@ class JelasticEnvironment(_JelasticObject):
         """
         Static method to get one environment
         """
-        self.api._("Environment.Control.GetEnvInfo", envName=envName)
+        # This is needed as it's a static method
+        from .. import api_connector as jelapi_connector
+
+        response = jelapi_connector()._(
+            "Environment.Control.GetEnvInfo", envName=envName
+        )
         return JelasticEnvironment(
             env_from_GetEnvInfo=response["env"],
             envGroups=response["envGroups"],

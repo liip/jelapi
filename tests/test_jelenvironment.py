@@ -46,6 +46,17 @@ def test_JelasticEnvironment_with_missing_data():
         JelasticEnvironment(env_from_GetEnvInfo=env_truncated, envGroups=[])
 
 
+def test_JelasticEnvironment_getter_by_name():
+    """
+    JelasticEnvironment.get() works, and does one call to api
+    """
+    jelapic()._ = Mock(
+        return_value={"env": get_standard_env(), "envGroups": []},
+    )
+    assert isinstance(JelasticEnvironment.get("envName"), JelasticEnvironment)
+    jelapic()._.assert_called_once()
+
+
 def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written

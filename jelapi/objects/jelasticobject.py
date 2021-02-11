@@ -5,16 +5,14 @@ from copy import deepcopy
 class _JelasticObject(ABC):
     """
     Any Jelastic Object, that keeps the last data as fetched from the API
+    _jelattributes           array of string attribute names that can be modified in that object
+    _readonly_jelattributes  array of string attribute names that cannot be modified (but accessed) in that object
+    _from_api                dict of attributes as last refreshed from API
     """
 
     _jelattributes = []
     _readonly_jelattributes = []
     _from_api = {}
-    _api_connector = None
-
-    def __init__(self, *, api_connector) -> None:
-        self._api_connector = api_connector
-        assert self._api_connector is not None
 
     def __getattribute__(self, name):
         """
@@ -76,3 +74,12 @@ class _JelasticObject(ABC):
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
         assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."
         assert not self.differs_from_api(), assertmsg
+
+    @property
+    def api(self):
+        """
+        Return the global api connector, as property
+        """
+        from .. import api_connector as jelapi_connector
+
+        return jelapi_connector()

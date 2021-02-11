@@ -2,6 +2,7 @@ from enum import Enum
 from json import dumps as jsondumps
 
 from .jelasticobject import _JelasticObject
+from ..exceptions import JelasticObjectException
 
 
 class JelasticEnvironment(_JelasticObject):
@@ -91,6 +92,7 @@ class JelasticEnvironment(_JelasticObject):
                 envName=self.envName,
                 displayName=self.displayName,
             )
+            self._from_api["displayName"] = self.displayName
 
     def _save_envGroups(self):
         """
@@ -102,7 +104,68 @@ class JelasticEnvironment(_JelasticObject):
                 envName=self.envName,
                 envGroups=jsondumps(self.envGroups),
             )
+            self._from_api["envGroups"] = self.envGroups
+
+    def _set_running_status(self):
+        """
+        Put Environment in the right status
+        """
+        if self.status != self._from_api["status"]:
+            if self.status == self.Status.RUNNING:
+                # TODO limit the statuses from which this is possible
+                self._api_connector._(
+                    "Environment.Control.StartEnv",
+                    envName=self.envName,
+                )
+                self._from_api["status"] = self.Status.RUNNING
+            elif self.status == self.Status.STOPPED:
+                if self._from_api["status"] not in [self.Status.RUNNING]:
+                    raise JelasticObjectException(
+                        "Cannot stop an environment not running"
+                    )
+                self._api_connector._(
+                    "Environment.Control.StopEnv",
+                    envName=self.envName,
+                )
+                self._from_api["status"] = self.Status.STOPPED
+            elif self.status == self.Status.SLEEPING:
+                self._api_connector._(
+                    "Environment.Control.SleepEnv",
+                    envName=self.envName,
+                )
+                self._from_api["status"] = self.Status.SLEEPING
+            else:
+                raise JelasticObjectException(
+                    f"{self.__class__.__name__}: {self.status} not supported"
+                )
 
     def save_to_jelastic(self):
+        """
+        Mandatory _JelasticObject method, to save status to Jelastic
+        """
         self._save_displayName()
         self._save_envGroups()
+        self._set_running_status()
+
+    # Convenience methods
+
+    def start(self) -> None:
+        """
+        Start Environment immediately
+        """
+        self.status = self.Status.RUNNING
+        self._set_running_status()
+
+    def stop(self) -> None:
+        """
+        Stop Environment immediately
+        """
+        self.status = self.Status.STOPPED
+        self._set_running_status()
+
+    def sleep(self) -> None:
+        """
+        Put Environment to sleep immediately
+        """
+        self.status = self.Status.SLEEPING
+        self._set_running_status()

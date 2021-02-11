@@ -3,6 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
+from jelapi.exceptions import JelasticObjectException
 from jelapi.objects import JelasticEnvironment
 from jelapi.objects.jelasticobject import _JelasticObject
 
@@ -152,6 +153,58 @@ def test_JelasticEnvironment_envGroups_change_and_save_will_talk_to_API():
     # A second save should not call the API
     jelenv.save()
     jelapic()._.assert_not_called()
+
+
+def test_JelasticEnvironment_can_only_be_stopped_from_running():
+    """
+    JelasticEnvironment cannot (yet) be put to certain states
+    """
+    jelenv = JelasticEnvironment(
+        env_from_GetEnvInfo=get_standard_env(),
+        envGroups=[],
+    )
+    JelStatus = JelasticEnvironment.Status
+    for status in [
+        JelStatus.UNKNOWN,
+        JelStatus.LAUNCHING,
+        JelStatus.SUSPENDED,
+        JelStatus.CREATING,
+        JelStatus.CLONING,
+        JelStatus.UPDATING,
+    ]:
+
+        jelenv._status = jelenv._from_api["status"] = status
+        with pytest.raises(JelasticObjectException):
+            jelenv.stop()
+
+    # But it works from running
+    jelapic()._ = Mock()
+    jelenv._from_api["status"] = JelStatus.RUNNING
+    jelenv._status = jelenv._from_api["status"] = JelStatus.RUNNING
+    jelenv.stop()
+    jelapic()._.assert_called_once()
+
+
+def test_JelasticEnvironment_unsupported_statuses():
+    """
+    JelasticEnvironment cannot (yet) be put to certain states
+    """
+    jelenv = JelasticEnvironment(
+        env_from_GetEnvInfo=get_standard_env(),
+        envGroups=[],
+    )
+    JelStatus = JelasticEnvironment.Status
+    for status in [
+        JelStatus.UNKNOWN,
+        JelStatus.LAUNCHING,
+        JelStatus.SUSPENDED,
+        JelStatus.CREATING,
+        JelStatus.CLONING,
+        JelStatus.UPDATING,
+    ]:
+        jelenv.status = status
+        with pytest.raises(JelasticObjectException):
+            jelenv.save()
 
 
 def test_JelasticEnvironment_stop_via_status():

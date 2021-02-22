@@ -30,7 +30,7 @@ def test_JelasticEnvironment_with_enough_data():
     """
     JelasticEnvironment can be instantiated
     """
-    JelasticEnvironment(env_from_GetEnvInfo=get_standard_env(), envGroups=[])
+    JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
 
 
 def test_JelasticEnvironment_with_missing_data():
@@ -40,7 +40,7 @@ def test_JelasticEnvironment_with_missing_data():
     env_truncated = get_standard_env()
     del env_truncated["displayName"]
     with pytest.raises(KeyError):
-        JelasticEnvironment(env_from_GetEnvInfo=env_truncated, envGroups=[])
+        JelasticEnvironment(jelastic_env=env_truncated, env_groups=[])
 
 
 def test_JelasticEnvironment_getter_by_name():
@@ -58,7 +58,7 @@ def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(env_from_GetEnvInfo=get_standard_env(), envGroups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
     for attr in ["shortdomain", "domain", "envName"]:
         assert getattr(jelenv, attr)
         with pytest.raises(AttributeError):
@@ -69,7 +69,7 @@ def test_JelasticEnvironment_doesnt_differ_from_api_initially():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(env_from_GetEnvInfo=get_standard_env(), envGroups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
     assert not jelenv.differs_from_api()
 
 
@@ -77,7 +77,7 @@ def test_JelasticEnvironment_str_rep():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(env_from_GetEnvInfo=get_standard_env(), envGroups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
     assert str(jelenv) == "JelasticEnvironment 'envName' <https://domain>"
 
 
@@ -85,7 +85,7 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(env_from_GetEnvInfo=get_standard_env(), envGroups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
     jelenv.displayName = "different displayName"
     assert jelenv.differs_from_api()
 
@@ -100,8 +100,8 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API_twice(
     )
 
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[],
+        jelastic_env=get_standard_env(),
+        env_groups=[],
     )
     jelenv.displayName = "different displayName"
     jelenv.save()
@@ -118,9 +118,7 @@ def test_JelasticEnvironment_differs_from_api_if_envGroups_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(), envGroups=["A", "B"]
-    )
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=["A", "B"])
     jelenv.envGroups.append("C")
     assert jelenv.differs_from_api()
     jelenv.envGroups = ["A", "B"]
@@ -138,8 +136,8 @@ def test_JelasticEnvironment_envGroups_change_and_save_will_talk_to_API():
     )
 
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[
+        jelastic_env=get_standard_env(),
+        env_groups=[
             "A",
             "B",
         ],
@@ -160,8 +158,8 @@ def test_JelasticEnvironment_can_only_be_stopped_from_running():
     JelasticEnvironment cannot (yet) be put to certain states
     """
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[],
+        jelastic_env=get_standard_env(),
+        env_groups=[],
     )
     JelStatus = JelasticEnvironment.Status
     for status in [
@@ -190,8 +188,8 @@ def test_JelasticEnvironment_unsupported_statuses():
     JelasticEnvironment cannot (yet) be put to certain states
     """
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[],
+        jelastic_env=get_standard_env(),
+        env_groups=[],
     )
     JelStatus = JelasticEnvironment.Status
     for status in [
@@ -221,8 +219,8 @@ def test_JelasticEnvironment_stop_via_status():
     )
 
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[],
+        jelastic_env=get_standard_env(),
+        env_groups=[],
     )
     jelenv.status = JelasticEnvironment.Status.STOPPED
     jelenv.save()
@@ -249,8 +247,8 @@ def test_JelasticEnvironment_stop_via_method():
     )
 
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(),
-        envGroups=[],
+        jelastic_env=get_standard_env(),
+        env_groups=[],
     )
     jelenv.stop()
     assert jelenv.status == JelasticEnvironment.Status.STOPPED
@@ -282,8 +280,8 @@ def test_JelasticEnvironment_start_via_status():
     ]:
         jelapic()._.reset_mock()
         jelenv = JelasticEnvironment(
-            env_from_GetEnvInfo=get_standard_env(status.value),
-            envGroups=[],
+            jelastic_env=get_standard_env(status.value),
+            env_groups=[],
         )
         jelenv.status = JelasticEnvironment.Status.RUNNING
         jelenv.save()
@@ -316,8 +314,8 @@ def test_JelasticEnvironment_start_via_method():
     ]:
         jelapic()._.reset_mock()
         jelenv = JelasticEnvironment(
-            env_from_GetEnvInfo=get_standard_env(status.value),
-            envGroups=[],
+            jelastic_env=get_standard_env(status.value),
+            env_groups=[],
         )
         jelenv.start()
         assert jelenv.status == JelasticEnvironment.Status.RUNNING
@@ -349,8 +347,8 @@ def test_JelasticEnvironment_sleep_via_status():
     ]:
         jelapic()._.reset_mock()
         jelenv = JelasticEnvironment(
-            env_from_GetEnvInfo=get_standard_env(status.value),
-            envGroups=[],
+            jelastic_env=get_standard_env(status.value),
+            env_groups=[],
         )
         jelenv.status = JelasticEnvironment.Status.RUNNING
         jelenv.save()
@@ -377,8 +375,8 @@ def test_JelasticEnvironment_sleep_via_method():
     )
 
     jelenv = JelasticEnvironment(
-        env_from_GetEnvInfo=get_standard_env(JelasticEnvironment.Status.RUNNING),
-        envGroups=[],
+        jelastic_env=get_standard_env(JelasticEnvironment.Status.RUNNING),
+        env_groups=[],
     )
     jelenv.sleep()
     assert jelenv.status == JelasticEnvironment.Status.SLEEPING

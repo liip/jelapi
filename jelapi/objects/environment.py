@@ -49,17 +49,17 @@ class JelasticEnvironment(_JelasticObject):
             "Environment.Control.GetEnvInfo", envName=envName
         )
         return JelasticEnvironment(
-            env_from_GetEnvInfo=response["env"],
-            envGroups=response["envGroups"],
+            jelastic_env=response["env"],
+            env_groups=response["envGroups"],
         )
 
-    def _update_from_getEnvInfo(self, env_from_GetEnvInfo, envGroups) -> None:
+    def _update_from_getEnvInfo(self, jelastic_env, env_groups) -> None:
         """
         Construct/Update our object from the structure
         """
-        if env_from_GetEnvInfo:
+        if jelastic_env:
             # Allow exploration of the returned object, but don't act on it.
-            self._env = env_from_GetEnvInfo
+            self._env = jelastic_env
             # Read-only attributes
             self._shortdomain = self._env["shortdomain"]
             self._envName = self._env["envName"]
@@ -76,16 +76,16 @@ class JelasticEnvironment(_JelasticObject):
                 self.Status.UNKNOWN,
             )
 
-        self.envGroups = envGroups
+        self.envGroups = env_groups
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
-    def __init__(self, *, env_from_GetEnvInfo, envGroups) -> None:
+    def __init__(self, *, jelastic_env, env_groups) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """
-        self._update_from_getEnvInfo(env_from_GetEnvInfo, envGroups)
+        self._update_from_getEnvInfo(jelastic_env, env_groups)
 
     def refresh_from_api(self) -> None:
         response = self.api._("Environment.Control.GetEnvInfo", envName=self.envName)

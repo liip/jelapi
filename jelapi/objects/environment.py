@@ -118,10 +118,14 @@ class JelasticEnvironment(_JelasticObject):
             )
             self._from_api["envGroups"] = self.envGroups
 
-    def _set_running_status(self):
+    def _set_running_status(self, to_status_now: Status = None):
         """
         Put Environment in the right status
         """
+        # Set it _now_ if requested
+        if to_status_now is not None:
+            self.status = to_status_now
+
         if self.status != self._from_api["status"]:
             if self.status == self.Status.RUNNING:
                 # TODO limit the statuses from which this is possible
@@ -165,19 +169,16 @@ class JelasticEnvironment(_JelasticObject):
         """
         Start Environment immediately
         """
-        self.status = self.Status.RUNNING
-        self._set_running_status()
+        self._set_running_status(self.Status.RUNNING)
 
     def stop(self) -> None:
         """
         Stop Environment immediately
         """
-        self.status = self.Status.STOPPED
-        self._set_running_status()
+        self._set_running_status(self.Status.STOPPED)
 
     def sleep(self) -> None:
         """
         Put Environment to sleep immediately
         """
-        self.status = self.Status.SLEEPING
-        self._set_running_status()
+        self._set_running_status(self.Status.SLEEPING)

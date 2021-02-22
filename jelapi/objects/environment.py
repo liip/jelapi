@@ -118,13 +118,11 @@ class JelasticEnvironment(_JelasticObject):
             )
             self._from_api["envGroups"] = self.envGroups
 
-    def _set_running_status(self, to_status_now: Status = None):
+    def _set_running_status(self, to_status_now: Status):
         """
         Put Environment in the right status
         """
-        # Set it _now_ if requested
-        if to_status_now is not None:
-            self.status = to_status_now
+        self.status = to_status_now
 
         if self.status != self._from_api["status"]:
             if self.status == self.Status.RUNNING:
@@ -161,7 +159,7 @@ class JelasticEnvironment(_JelasticObject):
         """
         self._save_displayName()
         self._save_envGroups()
-        self._set_running_status()
+        self._set_running_status(self.status)
 
     # Convenience methods
 

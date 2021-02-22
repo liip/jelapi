@@ -33,8 +33,8 @@ class JelasticAPIConnector:
         # Make sure we have our session in
         self.logger.debug("_apicall {} {}, data:{}".format(method.upper(), uri, data))
         data.update(self.apidata)
-        r = getattr(self.client, method)(
-            "{url}{uri}".format(url=self.apiurl, uri=uri), data=data
+        r = self.client.request(
+            method=method, url="{url}{uri}".format(url=self.apiurl, uri=uri), data=data
         )
         if r.status_code != httpx.codes.OK:
             raise JelasticAPIException(

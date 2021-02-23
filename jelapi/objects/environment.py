@@ -2,7 +2,10 @@ from enum import Enum
 from json import dumps as jsondumps
 
 from ..exceptions import JelasticObjectException
-from .jelasticobject import _JelasticObject
+from .jelasticobject import (
+    _JelasticObject,
+    _JelasticAttribute as JelA,
+)
 
 
 class JelasticEnvironment(_JelasticObject):
@@ -10,16 +13,12 @@ class JelasticEnvironment(_JelasticObject):
     Represents a Jelastic Environment
     """
 
-    _jelattributes = [
-        "displayName",
-        "envGroups",
-        "status",
-    ]
-    _readonly_jelattributes = [
-        "envName",
-        "shortdomain",
-        "domain",
-    ]
+    displayName = JelA()
+    envGroups = JelA()
+    status = JelA()
+    envName = JelA(read_only=True)
+    shortdomain = JelA(read_only=True)
+    domain = JelA(read_only=True)
 
     class Status(Enum):
         """

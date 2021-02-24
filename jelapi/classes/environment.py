@@ -6,6 +6,7 @@ from .jelasticobject import (
     _JelasticObject,
     _JelasticAttribute as _JelAttr,
     _JelAttrStr,
+    _JelAttrList,
 )
 
 
@@ -31,7 +32,7 @@ class JelasticEnvironment(_JelasticObject):
         UPDATING = 12
 
     displayName = _JelAttrStr()
-    envGroups = _JelAttr()
+    envGroups = _JelAttrList()
     status = _JelAttr()
     envName = _JelAttrStr(read_only=True)
     shortdomain = _JelAttrStr(read_only=True)

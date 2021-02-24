@@ -46,6 +46,12 @@ class _JelAttrInt(_JelasticAttribute):
             raise TypeError
 
 
+class _JelAttrList(_JelasticAttribute):
+    def typecheck(self, value: Any) -> None:
+        if not isinstance(value, list):
+            raise TypeError
+
+
 class _JelasticObject(ABC):
     """
     Any Jelastic Object, that keeps the last data as fetched from the API

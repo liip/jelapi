@@ -10,6 +10,7 @@ from jelapi.classes.jelasticobject import (
     _JelasticAttribute,
     _JelAttrStr,
     _JelAttrInt,
+    _JelAttrList,
 )
 
 
@@ -69,6 +70,23 @@ def test_JelAttrInt_supports_int_typecheck():
         t.jela = "2"
     with pytest.raises(TypeError):
         t.jela = [2, "string"]
+
+
+def test_JelAttrList_supports_list_typecheck():
+    """
+    _JelAttrList to store arbitrary lists
+    """
+
+    class Test:
+        jela = _JelAttrList()
+
+    t = Test()
+    t.jela = ["2", "3"]
+    t.jela.append("string")
+    with pytest.raises(TypeError):
+        t.jela = "2"
+    with pytest.raises(TypeError):
+        t.jela = 2
 
 
 def test_JelasticAttribute_can_be_read_only():

@@ -1,12 +1,16 @@
 from unittest.mock import Mock
-from typing import List
 
 import pytest
 
 from jelapi import api_connector as jelapic
 from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticEnvironment
-from jelapi.classes.jelasticobject import _JelasticObject, _JelasticAttribute
+from jelapi.classes.jelasticobject import (
+    _JelasticObject,
+    _JelasticAttribute,
+    _JelAttrStr,
+    _JelAttrInt,
+)
 
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):
@@ -25,7 +29,7 @@ def test_JelasticAttribute_is_permissive_by_default():
     """
 
     class Test:
-        jela: str = _JelasticAttribute()
+        jela = _JelasticAttribute()
 
     t = Test()
     t.jela = "another string"
@@ -33,13 +37,13 @@ def test_JelasticAttribute_is_permissive_by_default():
     t.jela = [2, "string"]
 
 
-def test_JelasticAttribute_supports_str_typecheck():
+def test_JelAttrStr_supports_str_typecheck():
     """
-    _JelasticAttribute is a descriptor
+    _JelAttrStr to store strings
     """
 
     class Test:
-        jela: str = _JelasticAttribute(type_check=str)
+        jela = _JelAttrStr()
 
     t = Test()
     t.jela = "a string"
@@ -50,13 +54,13 @@ def test_JelasticAttribute_supports_str_typecheck():
         t.jela = [2, "string"]
 
 
-def test_JelasticAttribute_supports_int_typecheck():
+def test_JelAttrInt_supports_int_typecheck():
     """
-    _JelasticAttribute is a descriptor
+    _JelAttrInt to store ints
     """
 
     class Test:
-        jela: int = _JelasticAttribute(type_check=int)
+        jela = _JelAttrInt()
 
     t = Test()
     t.jela = 3
@@ -65,17 +69,6 @@ def test_JelasticAttribute_supports_int_typecheck():
         t.jela = "2"
     with pytest.raises(TypeError):
         t.jela = [2, "string"]
-
-
-def test_JelasticAttribute_doesnt_supports_list_typecheck():
-    """
-    _JelasticAttribute is a descriptor
-    """
-
-    with pytest.raises(AttributeError):
-
-        class Test:
-            jela: List[str] = _JelasticAttribute(type_check=list)
 
 
 def test_JelasticAttribute_can_be_read_only():

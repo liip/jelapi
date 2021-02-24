@@ -4,7 +4,8 @@ from json import dumps as jsondumps
 from ..exceptions import JelasticObjectException
 from .jelasticobject import (
     _JelasticObject,
-    _JelasticAttribute as JelAttr,
+    _JelasticAttribute as _JelAttr,
+    _JelAttrStr,
 )
 
 
@@ -29,12 +30,12 @@ class JelasticEnvironment(_JelasticObject):
         CLONING = 7
         UPDATING = 12
 
-    displayName: str = JelAttr(type_check=str)
-    envGroups: str = JelAttr()
-    status: Status = JelAttr()
-    envName: str = JelAttr(read_only=True)
-    shortdomain: str = JelAttr(read_only=True)
-    domain: str = JelAttr(read_only=True)
+    displayName = _JelAttrStr()
+    envGroups = _JelAttr()
+    status = _JelAttr()
+    envName = _JelAttrStr(read_only=True)
+    shortdomain = _JelAttrStr(read_only=True)
+    domain = _JelAttrStr(read_only=True)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":

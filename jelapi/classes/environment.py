@@ -37,7 +37,7 @@ class JelasticEnvironment(_JelasticObject):
     domain = JelAttr(str, read_only=True)
 
     @staticmethod
-    def get(envName: str):
+    def get(envName: str) -> "JelasticEnvironment":
         """
         Static method to get one environment
         """

@@ -4,8 +4,8 @@ import pytest
 
 from jelapi import api_connector as jelapic
 from jelapi.exceptions import JelasticObjectException
-from jelapi.objects import JelasticEnvironment
-from jelapi.objects.jelasticobject import _JelasticObject, _JelasticAttribute
+from jelapi.classes import JelasticEnvironment
+from jelapi.classes.jelasticobject import _JelasticObject, _JelasticAttribute
 
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):

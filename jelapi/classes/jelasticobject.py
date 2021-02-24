@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from typing import Dict, Any
 
 
 class _JelasticAttribute:
@@ -23,6 +24,7 @@ class _JelasticAttribute:
             raise AttributeError(
                 f"{self.__class__.__name__}: '{self.public_name}' is read only."
             )
+
         if type(value) != self.var_type:
             raise TypeError(
                 f"{self.__class__.__name__}: '{value} is not of type {self.var_type} (but of type ({type(value)})"
@@ -36,7 +38,7 @@ class _JelasticObject(ABC):
     _from_api                dict of attributes as last refreshed from API
     """
 
-    _from_api = {}
+    _from_api: Dict[str, Any] = {}
 
     def copy_self_as_from_api(self) -> None:
         """
@@ -91,7 +93,7 @@ class _JelasticObject(ABC):
         Refresh current object from the API
         """
 
-    def save(self) -> bool:
+    def save(self) -> None:
         """
         Save the changes staged in attributes
         """

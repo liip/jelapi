@@ -5,7 +5,7 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.exceptions import JelasticObjectException
 from jelapi.objects import JelasticEnvironment
-from jelapi.objects.jelasticobject import _JelasticObject
+from jelapi.objects.jelasticobject import _JelasticObject, _JelasticAttribute
 
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):
@@ -16,6 +16,39 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):
         "displayName": "initial displayName",
         "status": status,
     }
+
+
+def test_JelasticAttribute_is_str_by_default():
+    """
+    _JelasticAttribute is a descriptor
+    """
+
+    class Test:
+        jela = _JelasticAttribute()
+
+    t = Test()
+    t.jela = "a string"
+    t.jela = "another string"
+    with pytest.raises(TypeError):
+        t.jela = 2
+    with pytest.raises(TypeError):
+        t.jela = ["strings"]
+
+
+def test_JelasticAttribute_can_be_read_only():
+    """
+    _JelasticAttribute is a descriptor
+    """
+
+    class Test:
+        jela = _JelasticAttribute(read_only=True)
+
+    t = Test()
+    # To set in nevertheless, set the private counterpart.
+    t._jela = "a string"
+    assert t.jela == "a string"
+    with pytest.raises(AttributeError):
+        t.jela = "another string"
 
 
 def test_JelasticObject_is_abstract():

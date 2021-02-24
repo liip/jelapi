@@ -7,8 +7,9 @@ class _JelasticAttribute:
     Descriptor class, with read_only possibility
     """
 
-    def __init__(self, read_only: bool = False):
+    def __init__(self, var_type: type = str, read_only: bool = False):
         self.read_only = read_only
+        self.var_type = var_type
 
     def __set_name__(self, owner, name):
         self.public_name = name
@@ -21,6 +22,10 @@ class _JelasticAttribute:
         if self.read_only:
             raise AttributeError(
                 f"{self.__class__.__name__}: '{self.public_name}' is read only."
+            )
+        if type(value) != self.var_type:
+            raise TypeError(
+                f"{self.__class__.__name__}: '{value} is not of type {self.var_type} (but of type ({type(value)})"
             )
         setattr(obj, self.private_name, value)
 

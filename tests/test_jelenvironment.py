@@ -1,4 +1,5 @@
 from unittest.mock import Mock
+from typing import List
 
 import pytest
 
@@ -18,13 +19,27 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):
     }
 
 
-def test_JelasticAttribute_is_str_by_default():
+def test_JelasticAttribute_is_permissive_by_default():
+    """
+    _JelasticAttribute is a descriptor class
+    """
+
+    class Test:
+        jela: str = _JelasticAttribute()
+
+    t = Test()
+    t.jela = "another string"
+    t.jela = 2
+    t.jela = [2, "string"]
+
+
+def test_JelasticAttribute_supports_str_typecheck():
     """
     _JelasticAttribute is a descriptor
     """
 
     class Test:
-        jela = _JelasticAttribute()
+        jela: str = _JelasticAttribute(type_check=str)
 
     t = Test()
     t.jela = "a string"
@@ -32,7 +47,35 @@ def test_JelasticAttribute_is_str_by_default():
     with pytest.raises(TypeError):
         t.jela = 2
     with pytest.raises(TypeError):
-        t.jela = ["strings"]
+        t.jela = [2, "string"]
+
+
+def test_JelasticAttribute_supports_int_typecheck():
+    """
+    _JelasticAttribute is a descriptor
+    """
+
+    class Test:
+        jela: int = _JelasticAttribute(type_check=int)
+
+    t = Test()
+    t.jela = 3
+    t.jela = 5
+    with pytest.raises(TypeError):
+        t.jela = "2"
+    with pytest.raises(TypeError):
+        t.jela = [2, "string"]
+
+
+def test_JelasticAttribute_doesnt_supports_list_typecheck():
+    """
+    _JelasticAttribute is a descriptor
+    """
+
+    with pytest.raises(AttributeError):
+
+        class Test:
+            jela: List[str] = _JelasticAttribute(type_check=list)
 
 
 def test_JelasticAttribute_can_be_read_only():

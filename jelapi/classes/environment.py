@@ -29,12 +29,12 @@ class JelasticEnvironment(_JelasticObject):
         CLONING = 7
         UPDATING = 12
 
-    displayName = JelAttr(str)
-    envGroups = JelAttr(list)
-    status = JelAttr(Status)
-    envName = JelAttr(str, read_only=True)
-    shortdomain = JelAttr(str, read_only=True)
-    domain = JelAttr(str, read_only=True)
+    displayName: str = JelAttr(type_check=str)
+    envGroups: str = JelAttr()
+    status: Status = JelAttr()
+    envName: str = JelAttr(read_only=True)
+    shortdomain: str = JelAttr(read_only=True)
+    domain: str = JelAttr(read_only=True)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":

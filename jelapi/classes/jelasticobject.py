@@ -6,28 +6,41 @@ from typing import Dict, Any
 class _JelasticAttribute:
     """
     Descriptor class, with read_only possibility
+    It supports limited type checks;
+    - str
     """
 
-    def __init__(self, var_type: type = str, read_only: bool = False):
+    def __init__(self, type_check: type = None, read_only: bool = False):
         self.read_only = read_only
-        self.var_type = var_type
+        if type_check not in [None, str, int]:
+            raise AttributeError(f"Type check {type_check} not implemented.")
+        self.type_check = type_check
 
     def __set_name__(self, owner, name):
         self.public_name = name
         self.private_name = f"_{name}"
 
-    def __get__(self, obj, objtype=None):
+    def __get__(self, obj: Any, objtype: type = None) -> Any:
         return getattr(obj, self.private_name)
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: Any, value: Any):
         if self.read_only:
             raise AttributeError(
                 f"{self.__class__.__name__}: '{self.public_name}' is read only."
             )
 
-        if type(value) != self.var_type:
+        typeerror: bool = False
+        if self.type_check is not None:
+            if self.type_check == str:
+                if not isinstance(value, str):
+                    typeerror = True
+            if self.type_check == int:
+                if not isinstance(value, int):
+                    typeerror = True
+
+        if typeerror:
             raise TypeError(
-                f"{self.__class__.__name__}: '{value} is not of type {self.var_type} (but of type ({type(value)})"
+                f"{self.__class__.__name__}: '{value} is not of type {self.type_check} (but of type ({type(value)})"
             )
         setattr(obj, self.private_name, value)
 

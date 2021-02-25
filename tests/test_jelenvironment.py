@@ -7,13 +7,15 @@ from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticEnvironment
 
 
-def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value):
+def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains=None):
+    extdomains = extdomains if extdomains else []
     return {
         "shortdomain": "shortdomain",
         "domain": "domain",
         "envName": "envName",
         "displayName": "initial displayName",
         "status": status,
+        "extdomains": extdomains,
     }
 
 
@@ -375,5 +377,48 @@ def test_JelasticEnvironment_sleep_via_method():
 
     # A second save should not call the API
     jelapic()._.reset_mock()
+    jelenv.save()
+    jelapic()._.assert_not_called()
+
+
+def test_JelasticEnvironment_differs_from_api_if_extdomains_is_changed():
+    """
+    JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
+    """
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    assert not jelenv.differs_from_api()
+    jelenv.extdomains.append("test.example.com")
+    assert jelenv.differs_from_api()
+    jelenv.extdomains.append("test.example.org")
+    assert jelenv.differs_from_api()
+
+
+def test_JelasticEnvironment_extomains_change_and_save_will_talk_to_API():
+    """
+    JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
+    """
+    twodomains = ["test.example.com", "test.example.org"]
+    jelapic()._ = Mock(
+        return_value={"env": get_standard_env(extdomains=twodomains), "envGroups": []},
+    )
+
+    jelenv = JelasticEnvironment(
+        jelastic_env=get_standard_env(),
+        env_groups=[],
+    )
+    jelenv.extdomains = twodomains
+    jelenv.save()
+    jelapic()._.assert_called()
+
+    jelapic()._.reset_mock()
+
+    #  Removing a domain also calls
+    jelenv.extdomains.remove("test.example.com")
+    jelenv.save()
+    jelapic()._.assert_called()
+
+    jelapic()._.reset_mock()
+
+    # A second save should not call the API
     jelenv.save()
     jelapic()._.assert_not_called()

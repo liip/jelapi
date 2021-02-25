@@ -37,6 +37,7 @@ class JelasticEnvironment(_JelasticObject):
     envName = _JelAttrStr(read_only=True)
     shortdomain = _JelAttrStr(read_only=True)
     domain = _JelAttrStr(read_only=True)
+    extdomains = _JelAttrList()
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -76,6 +77,7 @@ class JelasticEnvironment(_JelasticObject):
                 ),
                 self.Status.UNKNOWN,
             )
+            self.extdomains = self._env["extdomains"]
 
         self.envGroups = env_groups
 
@@ -119,6 +121,29 @@ class JelasticEnvironment(_JelasticObject):
             )
             self._from_api["envGroups"] = self.envGroups
 
+    def _save_extDomains(self):
+        """
+        Ensure the extDomains are bound correctly
+        """
+        if self.extdomains != self._from_api["extdomains"]:
+            # Remove domains
+            for domain in self._from_api["extdomains"]:
+                if domain not in self.extdomains:
+                    self.api._(
+                        "Environment.Binder.RemoveExtDomain",
+                        envName=self.envName,
+                        extdomain=domain,
+                    )
+            # Add domains
+            for domain in self.extdomains:
+                if domain not in self._from_api["extdomains"]:
+                    self.api._(
+                        "Environment.Binder.BindExtDomain",
+                        envName=self.envName,
+                        extdomain=domain,
+                    )
+            self._from_api["extdomains"] = self.extdomains
+
     def _set_running_status(self, to_status_now: Status):
         """
         Put Environment in the right status
@@ -160,6 +185,7 @@ class JelasticEnvironment(_JelasticObject):
         """
         self._save_displayName()
         self._save_envGroups()
+        self._save_extDomains()
         self._set_running_status(self.status)
 
     # Convenience methods

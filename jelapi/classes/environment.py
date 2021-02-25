@@ -82,26 +82,21 @@ class JelasticEnvironment(_JelasticObject):
         """
         Construct/Update our object from the structure
         """
-        if jelastic_env:
-            # Allow exploration of the returned object, but don't act on it.
-            self._env = jelastic_env
-            # Read-only attributes
-            self._shortdomain = self._env["shortdomain"]
-            self._envName = self._env["envName"]
-            self._domain = self._env["domain"]
+        # Allow exploration of the returned object, but don't act on it.
+        self._env = jelastic_env
+        # Read-only attributes
+        self._shortdomain = self._env["shortdomain"]
+        self._envName = self._env["envName"]
+        self._domain = self._env["domain"]
 
-            # Read-write attributes
-            # displayName is sometimes not-present, do not die
-            self.displayName = self._env.get("displayName", "")
-            self.status = next(
-                (
-                    status
-                    for status in self.Status
-                    if status.value == self._env["status"]
-                ),
-                self.Status.UNKNOWN,
-            )
-            self.extdomains = self._env["extdomains"]
+        # Read-write attributes
+        # displayName is sometimes not-present, do not die
+        self.displayName = self._env.get("displayName", "")
+        self.status = next(
+            (status for status in self.Status if status.value == self._env["status"]),
+            self.Status.UNKNOWN,
+        )
+        self.extdomains = self._env["extdomains"]
 
         self.envGroups = env_groups if env_groups else []
 

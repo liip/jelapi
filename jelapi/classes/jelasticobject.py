@@ -40,19 +40,34 @@ class _JelasticAttribute:
 class _JelAttrStr(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, str):
-            raise TypeError
+            raise TypeError(f"{value} is no str")
 
 
 class _JelAttrInt(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, int):
-            raise TypeError
+            raise TypeError(f"{value} is no int")
 
 
 class _JelAttrList(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, list):
-            raise TypeError
+            raise TypeError(f"{value} is no list")
+        # Checking the list _items_ for type doesn't work reliably; one can l.append(item) and it won't be checked
+
+
+class _JelAttrIPv4(_JelAttrStr):
+    def typecheck(self, value: Any) -> None:
+        super().typecheck(value)
+        ip_chunks = value.split(".")
+        if len(ip_chunks) != 4:
+            raise TypeError(f"{value} is no IPv4 address")
+        for n in ip_chunks:
+            try:
+                if int(n) < 0 or int(n) > 255:
+                    raise TypeError(f"{value} is no IPv4 address ({n} is out of range)")
+            except ValueError:
+                raise TypeError(f"{value} is no IPv4 address ({n} is no int)")
 
 
 class _JelasticObject(ABC):
@@ -105,6 +120,9 @@ class _JelasticObject(ABC):
             ):
                 if descriptor_class.checked_for_differences:
                     if self._from_api[k] != v:
+                        return True
+                elif isinstance(descriptor_class, _JelAttrList):
+                    if any(item.differs_from_api() for item in v):
                         return True
         return False
 

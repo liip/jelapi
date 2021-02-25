@@ -10,6 +10,7 @@ from .jelasticobject import (
     _JelAttrStr,
     _JelAttrList,
 )
+from .node import JelasticNode
 
 
 class JelasticEnvironment(_JelasticObject):
@@ -40,6 +41,7 @@ class JelasticEnvironment(_JelasticObject):
     shortdomain = _JelAttrStr(read_only=True)
     domain = _JelAttrStr(read_only=True)
     extdomains = _JelAttrList()
+    nodes = _JelAttrList(checked_for_differences=False)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -54,7 +56,8 @@ class JelasticEnvironment(_JelasticObject):
         )
         return JelasticEnvironment(
             jelastic_env=response["env"],
-            env_groups=response["envGroups"],
+            env_groups=response.get("envGroups", []),
+            nodes=response.get("nodes", []),
         )
 
     @staticmethod
@@ -69,7 +72,9 @@ class JelasticEnvironment(_JelasticObject):
         response = jelapi_connector()._("Environment.Control.GetEnvs")
         return {
             info["env"]["envName"]: JelasticEnvironment(
-                jelastic_env=info["env"], env_groups=info["envGroups"]
+                jelastic_env=info["env"],
+                env_groups=info.get("envGroups", []),
+                nodes=info.get("nodes", []),
             )
             for info in response["infos"]
         }
@@ -78,6 +83,7 @@ class JelasticEnvironment(_JelasticObject):
         self,
         jelastic_env: Dict[str, Any],
         env_groups: Optional[List[str]] = None,
+        nodes: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         Construct/Update our object from the structure
@@ -99,6 +105,11 @@ class JelasticEnvironment(_JelasticObject):
         self.extdomains = self._env["extdomains"]
 
         self.envGroups = env_groups if env_groups else []
+        self.nodes = (
+            [JelasticNode(envName=self.envName, node_from_env=node) for node in nodes]
+            if nodes
+            else []
+        )
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -108,15 +119,35 @@ class JelasticEnvironment(_JelasticObject):
         *,
         jelastic_env: Dict[str, Any],
         env_groups: Optional[List[str]] = None,
+        nodes: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """
-        self._update_from_getEnvInfo(jelastic_env, env_groups)
+        self._update_from_getEnvInfo(jelastic_env, env_groups, nodes)
 
     def refresh_from_api(self) -> None:
         response = self.api._("Environment.Control.GetEnvInfo", envName=self.envName)
-        self._update_from_getEnvInfo(response["env"], response["envGroups"])
+        self._update_from_getEnvInfo(
+            jelastic_env=response["env"],
+            env_groups=response.get("envGroups", []),
+            nodes=response.get("nodes", []),
+        )
+        # api_nodes = response.get("nodes", [])
+        # # Remove the nodes not anymore in the API response
+        # for node in self.nodes:
+        #     if not any(node.id == n.id for n in api_nodes):
+        #         self.nodes.remove(node)
+        #     else:
+        #         # Update the present ones
+        #         node._update_from_dict(
+        #             envName=self.envName,
+        #             node_from_env=next(n for n in api_nodes if n["id"] == node.id),
+        #         )
+        # # Instantiate the new ones
+        # for rn in api_nodes:
+        #     if rn["id"] not in [n.id for n in self.nodes]:
+        #         self.nodes.append(JelasticNode(envName=self.envName, node_from_env=rn))
 
     def __str__(self) -> str:
         return f"JelasticEnvironment '{self.envName}' <https://{self.domain}>"
@@ -211,6 +242,8 @@ class JelasticEnvironment(_JelasticObject):
         self._save_envGroups()
         self._save_extDomains()
         self._set_running_status(self.status)
+        for n in self.nodes:
+            n.save()
 
     # Convenience methods
 

@@ -6,6 +6,8 @@ from jelapi import api_connector as jelapic
 from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticEnvironment
 
+from .test_jelnode import get_standard_node
+
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains=None):
     extdomains = extdomains if extdomains else []
@@ -450,3 +452,25 @@ def test_JelasticEnvironment_extomains_change_and_save_will_talk_to_API():
     # A second save should not call the API
     jelenv.save()
     jelapic()._.assert_not_called()
+
+
+def test_JelasticEnvironment_nodes():
+    """
+    JelasticEnvironment can be instantiated with nodes
+    """
+    nodes = []
+    for i in range(3):
+        node = get_standard_node()
+        node["id"] = i
+        nodes.append(node)
+
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), nodes=nodes)
+    assert not jelenv.differs_from_api()
+    jelenv.nodes[0].fixedCloudlets = 8
+    assert jelenv.differs_from_api()
+
+    jelapic()._ = Mock(
+        return_value={"env": get_standard_env(), "envGroups": []},
+    )
+    jelenv.save()
+    assert not jelenv.differs_from_api()

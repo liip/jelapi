@@ -4,6 +4,7 @@ from jelapi.classes.jelasticobject import (
     _JelasticObject,
     _JelasticAttribute,
     _JelAttrStr,
+    _JelAttrIPv4,
     _JelAttrInt,
     _JelAttrList,
 )
@@ -38,6 +39,33 @@ def test_JelAttrStr_supports_str_typecheck():
         t.jela = 2
     with pytest.raises(TypeError):
         t.jela = [2, "string"]
+
+
+def test_JelAttrIPv4_supports_ip_typecheck():
+    """
+    _JelAttrStr to store strings
+    """
+
+    class Test:
+        ip = _JelAttrIPv4()
+
+    t = Test()
+    t.ip = "192.0.2.1"
+    with pytest.raises(TypeError):
+        # Too long
+        t.ip = "192.0.2.1.2"
+    with pytest.raises(TypeError):
+        # Too short
+        t.ip = "192.0.2"
+    with pytest.raises(TypeError):
+        # Out-of-range
+        t.ip = "-1.0.2.1"
+    with pytest.raises(TypeError):
+        # Out-of-range
+        t.ip = "256.0.2.1"
+    with pytest.raises(TypeError):
+        # NaN
+        t.ip = "A.0.2.1"
 
 
 def test_JelAttrInt_supports_int_typecheck():

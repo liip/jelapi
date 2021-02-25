@@ -47,6 +47,34 @@ def test_JelasticEnvironment_getter_by_name():
     jelapic()._.assert_called_once()
 
 
+def test_JelasticEnvironment_list_all():
+    """
+    JelasticEnvironment.get() works, and does one call to api
+    """
+    jelapic()._ = Mock(
+        return_value={
+            "infos": [
+                {"env": get_standard_env(), "envGroups": []},
+            ]
+        },
+    )
+    jelenvs = JelasticEnvironment.list()
+    assert isinstance(jelenvs, dict)
+    first_jelenvname = list(jelenvs)[0]
+    assert isinstance(jelenvs[first_jelenvname], JelasticEnvironment)
+    jelapic()._.assert_called_once()
+
+    # If we gather the list again, it will not get called more, thanks to the lru_cache:
+    jelapic()._.reset_mock()
+    JelasticEnvironment.list()
+    jelapic()._.assert_not_called()
+
+    # Let's clear the lru_cache
+    JelasticEnvironment.list.cache_clear()
+    JelasticEnvironment.list()
+    jelapic()._.assert_called_once()
+
+
 def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written

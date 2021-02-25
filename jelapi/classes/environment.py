@@ -1,5 +1,7 @@
 from enum import Enum
+from functools import lru_cache
 from json import dumps as jsondumps
+from typing import Dict
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import (
@@ -54,6 +56,23 @@ class JelasticEnvironment(_JelasticObject):
             jelastic_env=response["env"],
             env_groups=response["envGroups"],
         )
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def list() -> Dict[str, "JelasticEnvironment"]:
+        """
+        Static method to get all environments
+        """
+        # This is needed as it's a static method
+        from .. import api_connector as jelapi_connector
+
+        response = jelapi_connector()._("Environment.Control.GetEnvs")
+        return {
+            info["env"]["envName"]: JelasticEnvironment(
+                jelastic_env=info["env"], env_groups=info["envGroups"]
+            )
+            for info in response["infos"]
+        }
 
     def _update_from_getEnvInfo(self, jelastic_env, env_groups) -> None:
         """

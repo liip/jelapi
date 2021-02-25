@@ -68,7 +68,8 @@ class JelasticEnvironment(_JelasticObject):
             self._domain = self._env["domain"]
 
             # Read-write attributes
-            self.displayName = self._env["displayName"]
+            # displayName is sometimes not-present, do not die
+            self.displayName = self._env.get("displayName", "")
             self.status = next(
                 (
                     status

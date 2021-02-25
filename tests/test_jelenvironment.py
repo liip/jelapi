@@ -31,7 +31,7 @@ def test_JelasticEnvironment_with_missing_data():
     JelasticEnvironment cannot be instantiated with partial envInfo
     """
     env_truncated = get_standard_env()
-    del env_truncated["displayName"]
+    del env_truncated["domain"]
     with pytest.raises(KeyError):
         JelasticEnvironment(jelastic_env=env_truncated, env_groups=[])
 

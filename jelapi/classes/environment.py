@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import lru_cache
 from json import dumps as jsondumps
-from typing import Dict
+from typing import Any, Dict, List, Optional
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import (
@@ -74,7 +74,11 @@ class JelasticEnvironment(_JelasticObject):
             for info in response["infos"]
         }
 
-    def _update_from_getEnvInfo(self, jelastic_env, env_groups) -> None:
+    def _update_from_getEnvInfo(
+        self,
+        jelastic_env: Dict[str, Any],
+        env_groups: Optional[List[str]] = None,
+    ) -> None:
         """
         Construct/Update our object from the structure
         """
@@ -99,12 +103,17 @@ class JelasticEnvironment(_JelasticObject):
             )
             self.extdomains = self._env["extdomains"]
 
-        self.envGroups = env_groups
+        self.envGroups = env_groups if env_groups else []
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
-    def __init__(self, *, jelastic_env, env_groups) -> None:
+    def __init__(
+        self,
+        *,
+        jelastic_env: Dict[str, Any],
+        env_groups: Optional[List[str]] = None,
+    ) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """

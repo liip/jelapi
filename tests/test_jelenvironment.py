@@ -23,7 +23,7 @@ def test_JelasticEnvironment_with_enough_data():
     """
     JelasticEnvironment can be instantiated
     """
-    JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    JelasticEnvironment(jelastic_env=get_standard_env())
 
 
 def test_JelasticEnvironment_with_missing_data():
@@ -33,7 +33,7 @@ def test_JelasticEnvironment_with_missing_data():
     env_truncated = get_standard_env()
     del env_truncated["domain"]
     with pytest.raises(KeyError):
-        JelasticEnvironment(jelastic_env=env_truncated, env_groups=[])
+        JelasticEnvironment(jelastic_env=env_truncated)
 
 
 def test_JelasticEnvironment_getter_by_name():
@@ -79,7 +79,7 @@ def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     for attr in ["shortdomain", "domain", "envName"]:
         assert getattr(jelenv, attr)
         with pytest.raises(AttributeError):
@@ -90,7 +90,7 @@ def test_JelasticEnvironment_doesnt_differ_from_api_initially():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     assert not jelenv.differs_from_api()
 
 
@@ -98,7 +98,7 @@ def test_JelasticEnvironment_str_rep():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     assert str(jelenv) == "JelasticEnvironment 'envName' <https://domain>"
 
 
@@ -106,7 +106,7 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     jelenv.displayName = "different displayName"
     assert jelenv.differs_from_api()
 
@@ -413,7 +413,7 @@ def test_JelasticEnvironment_differs_from_api_if_extdomains_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=[])
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     assert not jelenv.differs_from_api()
     jelenv.extdomains.append("test.example.com")
     assert jelenv.differs_from_api()

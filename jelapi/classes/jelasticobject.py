@@ -5,11 +5,14 @@ from typing import Dict, Any
 
 class _JelasticAttribute:
     """
-    Descriptor class, with read_only possibility
+    Descriptor class, with two tweakables:
+    - read_only
+    - checked_for_differences
     """
 
-    def __init__(self, read_only: bool = False):
+    def __init__(self, read_only: bool = False, checked_for_differences: bool = True):
         self.read_only = read_only
+        self.checked_for_differences = checked_for_differences
 
     def __set_name__(self, owner, name):
         self.public_name = name
@@ -29,7 +32,7 @@ class _JelasticAttribute:
 
     def typecheck(self, value: Any) -> None:
         """
-        raise TypeError if the typecheck fails
+        :raises TypeError if the typecheck fails
         """
         pass
 
@@ -93,6 +96,7 @@ class _JelasticObject(ABC):
                 if (
                     isinstance(descriptor_class, _JelasticAttribute)
                     and not descriptor_class.read_only
+                    and descriptor_class.checked_for_differences
                     and self._from_api[k] != v
                 ):
                     return True

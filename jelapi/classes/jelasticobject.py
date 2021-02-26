@@ -61,12 +61,15 @@ class _JelasticObject(ABC):
     _from_api                dict of attributes as last refreshed from API
     """
 
-    _from_api: Dict[str, Any] = {}
+    _from_api: Dict[str, Any] = None
 
     def copy_self_as_from_api(self) -> None:
         """
         Store a copy of ourselves, as it was from API
         """
+        # Instantiate dict
+        if not self._from_api:
+            self._from_api = {}
         for k, v in vars(self).items():
             if k[0] == "_":
                 # Check public_name

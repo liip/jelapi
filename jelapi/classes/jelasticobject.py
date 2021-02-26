@@ -78,13 +78,14 @@ class _JelasticObject(ABC):
             # These are the only ones we want to copy
             try:
                 descriptor_class = vars(type(self))[k]
-                if (
-                    isinstance(descriptor_class, _JelasticAttribute)
-                    and not descriptor_class.read_only
-                ):
-                    self._from_api[k] = deepcopy(v)
             except KeyError:
-                pass
+                descriptor_class = None
+
+            if (
+                isinstance(descriptor_class, _JelasticAttribute)
+                and not descriptor_class.read_only
+            ):
+                self._from_api[k] = deepcopy(v)
         # TODO Add an "updated_at" attribute
 
     def differs_from_api(self) -> bool:
@@ -96,15 +97,15 @@ class _JelasticObject(ABC):
             # These are the only ones we want to copy
             try:
                 descriptor_class = vars(type(self))[k]
-                if (
-                    isinstance(descriptor_class, _JelasticAttribute)
-                    and not descriptor_class.read_only
-                    and descriptor_class.checked_for_differences
-                    and self._from_api[k] != v
-                ):
-                    return True
             except KeyError:
-                pass
+                descriptor_class = None
+            if (
+                isinstance(descriptor_class, _JelasticAttribute)
+                and not descriptor_class.read_only
+            ):
+                if descriptor_class.checked_for_differences:
+                    if self._from_api[k] != v:
+                        return True
         return False
 
     @abstractmethod

@@ -8,7 +8,7 @@ hoster_domain = None
 
 from .exceptions import JelasticAPIException  # noqa
 from .jelapi import JelasticAPI  # noqa
-from .classes import JelasticEnvironment  # noqa
+from .classes import JelasticEnvironment, JelasticNode # noqa
 
 _api_connector = None
 

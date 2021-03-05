@@ -30,6 +30,7 @@ class JelasticNode(_JelasticObject):
     id = _JelAttrInt(read_only=True)
     envName = _JelAttrStr(read_only=True)
     intIP = _JelAttrIPv4(read_only=True)
+    url = _JelAttrStr(read_only=True)
     nodeGroup = _JelAttr(read_only=True)
     # "always guaranteed minimum"
     fixedCloudlets = _JelAttrInt()
@@ -44,7 +45,7 @@ class JelasticNode(_JelasticObject):
         self._node = node_from_env
         # Read-only attributes
         self._envName = envName
-        for attr in ["id", "intIP"]:
+        for attr in ["id", "intIP", "url"]:
             setattr(self, f"_{attr}", self._node[attr])
 
         self._nodeGroup = next(

@@ -13,6 +13,7 @@ def get_standard_node():
         "flexibleCloudlets": 1,
         "intIP": "192.0.2.1",
         "nodeGroup": "cp",
+        "url": "https://test.example.com",
     }
 
 

@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import Any, Dict
 
 from .jelasticobject import (
+    _JelasticAttribute as _JelAttr,
     _JelasticObject,
     _JelAttrStr,
     _JelAttrInt,
@@ -13,9 +15,22 @@ class JelasticNode(_JelasticObject):
     Represents a Jelastic Node
     """
 
+    class NodeGroup(Enum):
+        """
+        Standard NodeGroups
+        """
+
+        LOAD_BALANCER = "bl"
+        APPLICATION_SERVER = "cp"
+        CACHE = "cache"
+        SQL_DATABASE = "sqldb"
+        NOSQL_DATABASE = "nosqldb"
+        STORAGE_CONTAINER = "storage"
+
     id = _JelAttrInt(read_only=True)
     envName = _JelAttrStr(read_only=True)
     intIP = _JelAttrIPv4(read_only=True)
+    nodeGroup = _JelAttr(read_only=True)
     # "always guaranteed minimum"
     fixedCloudlets = _JelAttrInt()
     # "maximum"
@@ -31,6 +46,10 @@ class JelasticNode(_JelasticObject):
         self._envName = envName
         for attr in ["id", "intIP"]:
             setattr(self, f"_{attr}", self._node[attr])
+
+        self._nodeGroup = next(
+            (ng for ng in self.NodeGroup if ng.value == self._node["nodeGroup"]),
+        )
 
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:

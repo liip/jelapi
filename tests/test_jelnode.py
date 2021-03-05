@@ -12,6 +12,7 @@ def get_standard_node():
         "fixedCloudlets": 1,
         "flexibleCloudlets": 1,
         "intIP": "192.0.2.1",
+        "nodeGroup": "cp",
     }
 
 

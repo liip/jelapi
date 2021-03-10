@@ -129,7 +129,7 @@ class _JelasticObject(ABC):
                 and not descriptor_class.read_only
             ):
                 if descriptor_class.checked_for_differences:
-                    if self._from_api[k] != v:
+                    if k not in self._from_api or self._from_api[k] != v:
                         return True
                 elif isinstance(descriptor_class, _JelAttrList):
                     if any(item.differs_from_api() for item in v):

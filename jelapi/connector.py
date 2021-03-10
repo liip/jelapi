@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-import requests
+import httpx
 
 from .exceptions import JelasticAPIException
 
@@ -13,7 +13,18 @@ class JelasticAPIConnector:
         """
         self.apiurl = apiurl
         self.apidata = {"session": apitoken}
-        self.logger = logging.getLogger("JelasticAPIConnector")
+        self.logger = logging.getLogger(self.__class__.__name__)
+        # httpx client. Default to no timeouts, as the Jelastic API is _synchronous_.
+        self.client = httpx.Client(timeout=None)
+
+    def is_functional(self) -> bool:
+        """
+        Whether this was meaningfully instantiated
+        """
+        try:
+            return len(self.apiurl) > 0 and len(self.apidata["session"]) > 0
+        except TypeError:
+            return False
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:
         """
@@ -22,10 +33,10 @@ class JelasticAPIConnector:
         # Make sure we have our session in
         self.logger.debug("_apicall {} {}, data:{}".format(method.upper(), uri, data))
         data.update(self.apidata)
-        r = getattr(requests, method)(
-            "{url}{uri}".format(url=self.apiurl, uri=uri), data
+        r = self.client.request(
+            method=method, url="{url}{uri}".format(url=self.apiurl, uri=uri), data=data
         )
-        if r.status_code != requests.codes.ok:
+        if r.status_code != httpx.codes.OK:
             raise JelasticAPIException(
                 "{method} to {uri} failed with HTTP code {code}".format(
                     method=method, uri=uri, code=r.status_code

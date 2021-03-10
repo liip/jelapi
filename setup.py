@@ -2,9 +2,10 @@
 
 from setuptools import find_packages, setup
 
-from jelapi import __version__
+__version__ = "0.1.0rc0"
 
-install_requires = ["requests>=2.16.0"]
+install_requires = ["httpx[http2]"]
+test_requires = ["respx", "pytest-cov"]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -20,12 +21,16 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/liip/jelapi",
     packages=find_packages(),
-    install_requires=["requests>=2.16.0"],
-    tests_require=["pytest-cov"],
+    install_requires=install_requires,
+    extras_require={
+        "test": test_requires,
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
         "Intended Audience :: Developers",

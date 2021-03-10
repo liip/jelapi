@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/liip/jelapi.svg?branch=main)](https://travis-ci.com/liip/jelapi)
+![Lint and Tests](https://github.com/liip/jelapi/workflows/Lint%20and%20Tests/badge.svg)
 [![codecov](https://codecov.io/gh/liip/jelapi/branch/main/graph/badge.svg?token=ZjQDtiXWwO)](https://codecov.io/gh/liip/jelapi)
 
 # jelapi

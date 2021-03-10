@@ -137,12 +137,12 @@ def test_JelasticNode_envVars_updates():
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
     )
-    node.envVars["NEWVAR"] = "revolution"
+    assert node.envVars["VAR"] == "value"
     # As we lazy-load, accessing the dict will call the API once
     jelapic()._.assert_called_once()
-    assert node.differs_from_api()
-    jelapic()._.reset_mock()
 
+    node.envVars["NEWVAR"] = "revolution"
+    assert node.differs_from_api()
     jelapic()._ = Mock(return_value={"result": 0})
     # Save the addition, it will work, and call one _add_
     node.save()
@@ -152,6 +152,14 @@ def test_JelasticNode_envVars_updates():
     jelapic()._.reset_mock()
     del node.envVars["NEWVAR"]
     # Save the removal, it will work, and call one _remove_
+    node.save()
+    jelapic()._.assert_called_once()
+    assert not node.differs_from_api()
+
+    # Now test both addition and removal, this will do a single "set"
+    node.envVars["NEWVAR"] = "new"
+    del node.envVars["VAR"]
+    jelapic()._.reset_mock()
     node.save()
     jelapic()._.assert_called_once()
     assert not node.differs_from_api()

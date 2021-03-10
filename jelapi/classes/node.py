@@ -134,13 +134,6 @@ class JelasticNode(_JelasticObject):
                     for k, v in self._from_api["_envVars"].items()
                     if k not in self._envVars
                 ]
-                if len(vars_to_remove) > 0:
-                    self.api._(
-                        "Environment.Control.RemoveContainerEnvVars",
-                        envName=self.envName,
-                        nodeId=self.id,
-                        vars=json.dumps(vars_to_remove),
-                    )
 
                 # Only add or update vars that need doing so.
                 vars_to_add_or_update = {
@@ -149,7 +142,23 @@ class JelasticNode(_JelasticObject):
                     if k not in self._from_api["_envVars"]
                     or v != self._from_api["_envVars"][k]
                 }
-                if len(vars_to_add_or_update) > 0:
+                if len(vars_to_remove) > 0:
+                    if len(vars_to_add_or_update) > 0:
+                        # Both need doing, do one shot only
+                        self.api._(
+                            "Environment.Control.SetContainerEnvVars",
+                            envName=self.envName,
+                            nodeId=self.id,
+                            vars=json.dumps(self._envVars),
+                        )
+                    else:
+                        self.api._(
+                            "Environment.Control.RemoveContainerEnvVars",
+                            envName=self.envName,
+                            nodeId=self.id,
+                            vars=json.dumps(vars_to_remove),
+                        )
+                elif len(vars_to_add_or_update) > 0:
                     # Add = "Set or Replace"
                     self.api._(
                         "Environment.Control.AddContainerEnvVars",
@@ -157,6 +166,7 @@ class JelasticNode(_JelasticObject):
                         nodeId=self.id,
                         vars=json.dumps(vars_to_add_or_update),
                     )
+
                 self.copy_self_as_from_api("_envVars")
 
     def save_to_jelastic(self):

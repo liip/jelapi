@@ -3,6 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
+from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticNode
 
 
@@ -104,6 +105,16 @@ def test_JelasticNode_envVars_refreshes_from_API():
     assert not node.differs_from_api()
 
 
+def test_JelasticNode_envVars_raises_if_set_without_fetch():
+    """
+    Saving a faked envVars without fetch will raise
+    """
+    node = JelasticNode(envName="", node_from_env=get_standard_node())
+    node._envVars = {"ID": "evil"}
+    with pytest.raises(JelasticObjectException):
+        node.save()
+
+
 def test_JelasticNode_envVars_updates():
     """
     Getting the envVars gets us an API call
@@ -114,4 +125,11 @@ def test_JelasticNode_envVars_updates():
         return_value={"object": {"VAR": "value"}},
     )
     node.envVars["NEWVAR"] = "revolution"
+    # As we lazy-load, accessing the dict will call the API once
+    jelapic()._.assert_called_once()
     assert node.differs_from_api()
+    jelapic()._.reset_mock()
+
+    jelapic()._ = Mock(return_value={"result": 0})
+    node.save()
+    jelapic()._.assert_called_once()

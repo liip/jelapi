@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class _JelasticAttribute:
@@ -85,7 +85,7 @@ class _JelasticObject(ABC):
 
     _from_api: Dict[str, Any] = None
 
-    def copy_self_as_from_api(self) -> None:
+    def copy_self_as_from_api(self, only_this_key: str = None) -> None:
         """
         Store a copy of ourselves, as it was from API
         """
@@ -96,6 +96,9 @@ class _JelasticObject(ABC):
             if k[0] == "_":
                 # Check public_name
                 k = k[1:]
+            if only_this_key and k != only_this_key:
+                # Only handle one key, and it's not this one
+                continue
             # This convoluted syntax checks if self.k is a _JelasticAttribute
             # These are the only ones we want to copy
             try:

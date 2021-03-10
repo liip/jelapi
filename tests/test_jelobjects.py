@@ -1,12 +1,13 @@
 import pytest
 
 from jelapi.classes.jelasticobject import (
-    _JelasticObject,
     _JelasticAttribute,
-    _JelAttrStr,
-    _JelAttrIPv4,
+    _JelasticObject,
+    _JelAttrDict,
     _JelAttrInt,
+    _JelAttrIPv4,
     _JelAttrList,
+    _JelAttrStr,
 )
 
 
@@ -96,6 +97,23 @@ def test_JelAttrList_supports_list_typecheck():
     t = Test()
     t.jela = ["2", "3"]
     t.jela.append("string")
+    with pytest.raises(TypeError):
+        t.jela = "2"
+    with pytest.raises(TypeError):
+        t.jela = 2
+
+
+def test_JelAttrDict_supports_dict_typecheck():
+    """
+    _JelAttrDict to store arbitrary dicts
+    """
+
+    class Test:
+        jela = _JelAttrDict()
+
+    t = Test()
+    t.jela = {"2": 3, "3": "text"}
+    t.jela["1"] = "1"
     with pytest.raises(TypeError):
         t.jela = "2"
     with pytest.raises(TypeError):

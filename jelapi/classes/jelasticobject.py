@@ -49,6 +49,13 @@ class _JelAttrInt(_JelasticAttribute):
             raise TypeError(f"{value} is no int")
 
 
+class _JelAttrDict(_JelasticAttribute):
+    def typecheck(self, value: Any) -> None:
+        if not isinstance(value, dict):
+            raise TypeError(f"{value} is no dict")
+        # Checking the dict _items_ for type doesn't work, see List
+
+
 class _JelAttrList(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, list):

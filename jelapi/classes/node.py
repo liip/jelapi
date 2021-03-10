@@ -1,12 +1,15 @@
+import json
 from enum import Enum
 from typing import Any, Dict
 
+from ..exceptions import JelasticObjectException
+from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
-    _JelasticAttribute as _JelAttr,
     _JelasticObject,
-    _JelAttrStr,
+    _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
+    _JelAttrStr,
 )
 
 
@@ -36,6 +39,10 @@ class JelasticNode(_JelasticObject):
     fixedCloudlets = _JelAttrInt()
     # "maximum"
     flexibleCloudlets = _JelAttrInt()
+    # Variables
+    _envVars = (
+        _JelAttrDict()
+    )  # this is the JelAttr, use envVars to access them through lazy loading
 
     def _update_from_dict(self, envName: str, node_from_env: Dict[str, Any]) -> None:
         """
@@ -75,20 +82,59 @@ class JelasticNode(_JelasticObject):
         return f"JelasticNode id:{self.id}"
 
     def _set_cloudlets(self):
-        # TODO: Add a boolean to explicitely allow reducing the number of flexibleCloudlets
-        self.api._(
-            "Environment.Control.SetCloudletsCountById",
-            envName=self.envName,
-            count=1,  # TODO: this is the nunber of _nodes
-            nodeid=self.id,
-            fixedCloudlets=self.fixedCloudlets,
-            flexibleCloudlets=self.flexibleCloudlets,
-        )
-        self._from_api["fixedCloudlets"] = self.fixedCloudlets
-        self._from_api["flexibleCloudlets"] = self.flexibleCloudlets
+        if (
+            self._from_api["fixedCloudlets"] != self.fixedCloudlets
+            or self._from_api["flexibleCloudlets"] != self.flexibleCloudlets
+        ):
+            # TODO: Add a boolean to explicitely allow reducing the number of flexibleCloudlets
+            self.api._(
+                "Environment.Control.SetCloudletsCountById",
+                envName=self.envName,
+                count=1,  # TODO: this is the nunber of _nodes
+                nodeid=self.id,
+                fixedCloudlets=self.fixedCloudlets,
+                flexibleCloudlets=self.flexibleCloudlets,
+            )
+            self._from_api["fixedCloudlets"] = self.fixedCloudlets
+            self._from_api["flexibleCloudlets"] = self.flexibleCloudlets
+
+    @property
+    def envVars(self):
+        """
+        Lazy load envVars when they're accessed
+        """
+        if not hasattr(self, "_envVars"):
+            response = self.api._(
+                "Environment.Control.GetContainerEnvVars",
+                envName=self.envName,
+                nodeId=self.id,
+            )
+            self._envVars = response["object"]
+            self.copy_self_as_from_api("_envVars")
+        return self._envVars
+
+    def _set_env_vars(self):
+        """
+        Set the modified envVars
+        """
+        # Only set them if they were fetched first
+        if hasattr(self, "_envVars"):
+            if "_envVars" not in self._from_api:
+                raise JelasticObjectException(
+                    "envVars cannot be saved if not fetched first (no blind set)"
+                )
+            if self._from_api["_envVars"] != self._envVars:
+                self.api._(
+                    "Environment.Control.SetContainerEnvVars",
+                    envName=self.envName,
+                    nodeId=self.id,
+                    vars=json.dumps(self._envVars),
+                )
+                self.copy_self_as_from_api("_envVars")
 
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
         """
         self._set_cloudlets()
+        self._set_env_vars()

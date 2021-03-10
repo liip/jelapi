@@ -86,3 +86,32 @@ def test_JelasticNode_set_cloudlets():
     node.fixedCloudlets = 3
     node.save()
     jelapic()._.assert_called_once()
+
+
+def test_JelasticNode_envVars_refreshes_from_API():
+    """
+    Getting the envVars gets us an API call
+    """
+    node = JelasticNode(envName="", node_from_env=get_standard_node())
+
+    jelapic()._ = Mock(
+        return_value={"object": {"VAR": "value"}},
+    )
+    assert "VAR" in node.envVars
+    assert node.envVars["VAR"] == "value"
+    # As we lazy-load, accessing the dict will call the API once
+    jelapic()._.assert_called_once()
+    assert not node.differs_from_api()
+
+
+def test_JelasticNode_envVars_updates():
+    """
+    Getting the envVars gets us an API call
+    """
+    node = JelasticNode(envName="", node_from_env=get_standard_node())
+
+    jelapic()._ = Mock(
+        return_value={"object": {"VAR": "value"}},
+    )
+    node.envVars["NEWVAR"] = "revolution"
+    assert node.differs_from_api()

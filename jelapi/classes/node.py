@@ -44,9 +44,7 @@ class JelasticNode(_JelasticObject):
         _JelAttrDict()
     )  # this is the JelAttr, use envVars to access them through lazy loading
 
-    def _update_from_dict(
-        self, parent: "JelasticEnvironment", node_from_env: Dict[str, Any]
-    ) -> None:
+    def _update_from_dict(self, parent, node_from_env: Dict[str, Any]) -> None:
         """
         Construct/Update our object from the structure
         """
@@ -69,9 +67,7 @@ class JelasticNode(_JelasticObject):
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
-    def __init__(
-        self, *, parent: "JelasticEnvironment", node_from_env: Dict[str, Any]
-    ) -> None:
+    def __init__(self, *, parent, node_from_env: Dict[str, Any]) -> None:
         """
         Construct a JelasticNode from the outer data
         """

@@ -4,12 +4,8 @@ from json import dumps as jsondumps
 from typing import Any, Dict, List, Optional
 
 from ..exceptions import JelasticObjectException
-from .jelasticobject import (
-    _JelasticObject,
-    _JelasticAttribute as _JelAttr,
-    _JelAttrStr,
-    _JelAttrList,
-)
+from .jelasticobject import _JelasticAttribute as _JelAttr
+from .jelasticobject import _JelasticObject, _JelAttrList, _JelAttrStr
 from .node import JelasticNode
 
 

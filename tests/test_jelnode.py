@@ -1,10 +1,12 @@
+from copy import deepcopy
 from unittest.mock import Mock
 
 import pytest
 
 from jelapi import api_connector as jelapic
+from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
-from jelapi.classes import JelasticNode, JelasticEnvironment
+
 from .utils import get_standard_env, get_standard_node
 
 jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
@@ -121,6 +123,31 @@ def test_JelasticNode_envVars_raises_if_set_empty():
     node._envVars = {}
     with pytest.raises(JelasticObjectException):
         node.save()
+
+
+def test_JelasticNode_envVars_raises_if_env_is_not_running():
+    """
+    Saving a faked envVars without fetch will raise
+    """
+    from jelapi.classes import JelasticEnvironment
+
+    JelStatus = JelasticEnvironment.Status
+    for status in JelStatus:
+        jelenv_local = deepcopy(jelenv)
+        jelenv_local.status = status
+        node = JelasticNode(parent=jelenv_local, node_from_env=get_standard_node())
+        jelapic()._ = Mock(
+            return_value={"object": {"VAR": "value"}},
+        )
+        if status in [
+            JelStatus.RUNNING,
+            JelStatus.CREATING,
+            JelStatus.CLONING,
+        ]:
+            node.envVars
+        else:
+            with pytest.raises(JelasticObjectException):
+                node.envVars
 
 
 def test_JelasticNode_envVars_updates():

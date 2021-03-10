@@ -108,6 +108,18 @@ class JelasticNode(_JelasticObject):
         """
         Lazy load envVars when they're accessed
         """
+        from .environment import JelasticEnvironment
+
+        JelStatus = JelasticEnvironment.Status
+
+        if self._parent.status not in [
+            JelStatus.RUNNING,
+            JelStatus.CREATING,
+            JelStatus.CLONING,
+        ]:
+            raise JelasticObjectException(
+                "envVars cannot be gathered on environments not running"
+            )
         if not hasattr(self, "_envVars"):
             response = self.api._(
                 "Environment.Control.GetContainerEnvVars",

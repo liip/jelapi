@@ -3,10 +3,10 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticEnvironment
+from jelapi.exceptions import JelasticObjectException
 
-from .utils import get_standard_node, get_standard_env
+from .utils import get_standard_env, get_standard_node
 
 
 def test_JelasticEnvironment_with_enough_data():

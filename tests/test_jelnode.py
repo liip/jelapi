@@ -115,10 +115,23 @@ def test_JelasticNode_envVars_raises_if_set_without_fetch():
         node.save()
 
 
+def test_JelasticNode_envVars_raises_if_set_empty():
+    """
+    Saving a faked envVars without fetch will raise
+    """
+    node = JelasticNode(envName="", node_from_env=get_standard_node())
+    jelapic()._ = Mock(
+        return_value={"object": {"VAR": "value"}},
+    )
+    # fetch it
+    node.envVars
+    # empty it
+    node._envVars = {}
+    with pytest.raises(JelasticObjectException):
+        node.save()
+
+
 def test_JelasticNode_envVars_updates():
-    """
-    Getting the envVars gets us an API call
-    """
     node = JelasticNode(envName="", node_from_env=get_standard_node())
 
     jelapic()._ = Mock(

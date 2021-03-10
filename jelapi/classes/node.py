@@ -123,6 +123,10 @@ class JelasticNode(_JelasticObject):
                 raise JelasticObjectException(
                     "envVars cannot be saved if not fetched first (no blind set)"
                 )
+            if len(self._envVars) == 0:
+                raise JelasticObjectException(
+                    "envVars cannot be set to empty (no wipe out)"
+                )
             if self._from_api["_envVars"] != self._envVars:
                 self.api._(
                     "Environment.Control.SetContainerEnvVars",

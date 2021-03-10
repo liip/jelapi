@@ -11,8 +11,26 @@ A Jelastic API Python library
     
 ## Usage
 
-    from jelapi import JelasticAPI
-    
-    japi = JelasticAPI(apiurl='your.jelasticserver.test', apitoken='token')
-     
-    japi.redeployContainersByGroup(env, dockertag=dockertag, nodeGroup="cp")
+```
+import jelapi
+
+jelapi.api_url = "https://app.jpc.infomaniak.com/1.0/"
+jelapi.api_token = "your-long-token"
+
+jelenvs = jelapi.JelasticEnvironment.list()
+
+jelenv = next(
+    env
+    for _, env in jelenvs.items()
+    if all(eg in env.envGroups for eg in ["clients/envgroup", "prod"])
+)
+
+for n in jelenv.nodes:
+    n.fixedCloudlets = 2
+
+cpnode = jelenv.node_by_node_group("cp")
+cpnode.fixedCloudlets = 2
+cpnode.envVars["AN_ENV_VARIABLE"] = "Content"
+
+jelenv.save()
+```

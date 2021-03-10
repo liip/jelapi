@@ -241,7 +241,23 @@ class JelasticEnvironment(_JelasticObject):
         for n in self.nodes:
             n.save()
 
-    # Convenience methods
+    def node_by_node_group(self, node_group: str) -> JelasticNode:
+        """
+        Return a node by nodeGroup magic string
+        """
+        valid_node_groups = [ng.value for ng in JelasticNode.NodeGroup]
+        if node_group not in valid_node_groups:
+            raise JelasticObjectException(
+                f"node_group value {node_group} not in {valid_node_groups}"
+            )
+
+        for node in self.nodes:
+            if node.nodeGroup.value == node_group:
+                return node
+
+        raise JelasticObjectException(
+            f"node_group {node_group} not find in environment's nodes"
+        )
 
     def start(self) -> None:
         """

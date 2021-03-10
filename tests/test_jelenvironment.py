@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment
+from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
 
 from .utils import get_standard_env, get_standard_node
@@ -462,3 +462,29 @@ def test_JelasticEnvironment_nodes():
     )
     jelenv.save()
     assert not jelenv.differs_from_api()
+
+
+def test_JelasticEnvironment_node_fetcher():
+    """
+    Test the convennience node fetcher
+    """
+    nodes = []
+    for i in range(2):
+        node = get_standard_node()
+        node["id"] = i
+        nodes.append(node)
+
+    nodes[0]["nodeGroup"] = "cp"
+    nodes[1]["nodeGroup"] = "sqldb"
+
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), nodes=nodes)
+
+    # Do not look by full NodeGroup object
+    with pytest.raises(JelasticObjectException):
+        jelenv.node_by_node_group(JelasticNode.NodeGroup.CACHE)
+
+    # If the node's not around, exception
+    with pytest.raises(JelasticObjectException):
+        jelenv.node_by_node_group("nosqldb")
+
+    assert isinstance(jelenv.node_by_node_group("cp"), JelasticNode)

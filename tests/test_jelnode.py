@@ -144,5 +144,14 @@ def test_JelasticNode_envVars_updates():
     jelapic()._.reset_mock()
 
     jelapic()._ = Mock(return_value={"result": 0})
+    # Save the addition, it will work, and call one _add_
+    node.save()
+    assert not node.differs_from_api()
+    jelapic()._.assert_called_once()
+
+    jelapic()._.reset_mock()
+    del node.envVars["NEWVAR"]
+    # Save the removal, it will work, and call one _remove_
     node.save()
     jelapic()._.assert_called_once()
+    assert not node.differs_from_api()

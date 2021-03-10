@@ -128,12 +128,35 @@ class JelasticNode(_JelasticObject):
                     "envVars cannot be set to empty (no wipe out)"
                 )
             if self._from_api["_envVars"] != self._envVars:
-                self.api._(
-                    "Environment.Control.SetContainerEnvVars",
-                    envName=self.envName,
-                    nodeId=self.id,
-                    vars=json.dumps(self._envVars),
-                )
+                # Only remove vars that need to be removed
+                vars_to_remove = [
+                    k
+                    for k, v in self._from_api["_envVars"].items()
+                    if k not in self._envVars
+                ]
+                if len(vars_to_remove) > 0:
+                    self.api._(
+                        "Environment.Control.RemoveContainerEnvVars",
+                        envName=self.envName,
+                        nodeId=self.id,
+                        vars=json.dumps(vars_to_remove),
+                    )
+
+                # Only add or update vars that need doing so.
+                vars_to_add_or_update = {
+                    k: v
+                    for k, v in self._envVars.items()
+                    if k not in self._from_api["_envVars"]
+                    or v != self._from_api["_envVars"][k]
+                }
+                if len(vars_to_add_or_update) > 0:
+                    # Add = "Set or Replace"
+                    self.api._(
+                        "Environment.Control.AddContainerEnvVars",
+                        envName=self.envName,
+                        nodeId=self.id,
+                        vars=json.dumps(vars_to_add_or_update),
+                    )
                 self.copy_self_as_from_api("_envVars")
 
     def save_to_jelastic(self):

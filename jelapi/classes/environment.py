@@ -106,7 +106,7 @@ class JelasticEnvironment(_JelasticObject):
 
         self.envGroups = env_groups if env_groups else []
         self.nodes = (
-            [JelasticNode(envName=self.envName, node_from_env=node) for node in nodes]
+            [JelasticNode(parent=self, node_from_env=node) for node in nodes]
             if nodes
             else []
         )

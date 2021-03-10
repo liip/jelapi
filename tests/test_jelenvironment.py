@@ -6,19 +6,7 @@ from jelapi import api_connector as jelapic
 from jelapi.exceptions import JelasticObjectException
 from jelapi.classes import JelasticEnvironment
 
-from .test_jelnode import get_standard_node
-
-
-def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains=None):
-    extdomains = extdomains if extdomains else []
-    return {
-        "shortdomain": "shortdomain",
-        "domain": "domain",
-        "envName": "envName",
-        "displayName": "initial displayName",
-        "status": status,
-        "extdomains": extdomains,
-    }
+from .utils import get_standard_node, get_standard_env
 
 
 def test_JelasticEnvironment_with_enough_data():

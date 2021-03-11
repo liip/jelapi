@@ -6,9 +6,11 @@ from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
+    _JelAttrBool,
     _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
+    _JelAttrList,
     _JelAttrStr,
 )
 
@@ -35,6 +37,35 @@ class JelasticNode(_JelasticObject):
     intIP = _JelAttrIPv4(read_only=True)
     url = _JelAttrStr(read_only=True)
     nodeGroup = _JelAttr(read_only=True)
+
+    # TODO: make the ones that make sense as RW attributes
+    diskIoLimit = _JelAttrInt(read_only=True)
+    diskIopsLimit = _JelAttrInt(read_only=True)
+    diskLimit = _JelAttrInt(read_only=True)
+    endpoints = _JelAttrList(read_only=True)
+    features = _JelAttrList(read_only=True)
+    hasPackages = _JelAttrBool(read_only=True)
+    isClusterSupport = _JelAttrBool(read_only=True)
+    isCustomSslSupport = _JelAttrBool(read_only=True)
+    isExternalIpRequired = _JelAttrBool(read_only=True)
+    isHighAvailability = _JelAttrBool(read_only=True)
+    isResetPassword = _JelAttrBool(read_only=True)
+    isVcsSupport = _JelAttrBool(read_only=True)
+    isWebAccess = _JelAttrBool(read_only=True)
+    ismaster = _JelAttrBool(read_only=True)
+    maxchanks = _JelAttrInt(read_only=True)
+    messages = _JelAttrList(read_only=True)
+    name = _JelAttrStr(read_only=True)
+    nodeType = _JelAttrStr(read_only=True)
+    nodemission = _JelAttrStr(read_only=True)
+    osType = _JelAttrStr(read_only=True)
+    packages = _JelAttrList(read_only=True)
+    port = _JelAttrInt(read_only=True)
+    singleContext = _JelAttrBool(read_only=True)
+    status = _JelAttrInt(read_only=True)
+    type = _JelAttrStr(read_only=True)
+    version = _JelAttrStr(read_only=True)
+
     # "always guaranteed minimum"
     fixedCloudlets = _JelAttrInt()
     # "maximum"
@@ -53,7 +84,38 @@ class JelasticNode(_JelasticObject):
         self._parent = parent
         # Read-only attributes
         self._envName = self._parent.envName
-        for attr in ["id", "intIP", "url"]:
+        for attr in [
+            "id",
+            "intIP",
+            "url",
+            "diskIoLimit",
+            "diskIopsLimit",
+            "diskLimit",
+            "endpoints",
+            "features",
+            "hasPackages",
+            "isClusterSupport",
+            "isCustomSslSupport",
+            "isExternalIpRequired",
+            "isHighAvailability",
+            "isResetPassword",
+            "isVcsSupport",
+            "isWebAccess",
+            "ismaster",
+            "maxchanks",
+            "messages",
+            "name",
+            "nodeType",
+            "nodemission",
+            "osType",
+            "packages",
+            "port",
+            "singleContext",
+            "status",
+            "type",
+            "url",
+            "version",
+        ]:
             setattr(self, f"_{attr}", self._node[attr])
 
         self._nodeGroup = next(

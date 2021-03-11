@@ -3,6 +3,7 @@ import pytest
 from jelapi.classes.jelasticobject import (
     _JelasticAttribute,
     _JelasticObject,
+    _JelAttrBool,
     _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
@@ -23,6 +24,23 @@ def test_JelasticAttribute_is_permissive_by_default():
     t.jela = "another string"
     t.jela = 2
     t.jela = [2, "string"]
+
+
+def test_JelAttrBool_supports_bool_typecheck():
+    """
+    _JelAttrBool to store bools
+    """
+
+    class Test:
+        jela = _JelAttrBool()
+
+    t = Test()
+    t.jela = False
+    t.jela = True
+    with pytest.raises(TypeError):
+        t.jela = 2
+    with pytest.raises(TypeError):
+        t.jela = "string"
 
 
 def test_JelAttrStr_supports_str_typecheck():

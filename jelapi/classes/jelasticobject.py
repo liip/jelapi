@@ -43,6 +43,12 @@ class _JelAttrStr(_JelasticAttribute):
             raise TypeError(f"{value} is no str")
 
 
+class _JelAttrBool(_JelasticAttribute):
+    def typecheck(self, value: Any) -> None:
+        if not isinstance(value, bool):
+            raise TypeError(f"{value} is no bool")
+
+
 class _JelAttrInt(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, int):

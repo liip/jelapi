@@ -182,3 +182,63 @@ def test_JelasticNode_envVars_updates():
     node.save()
     jelapic()._.assert_called_once()
     assert not node.differs_from_api()
+
+
+def test_JelasticNode_exec_commands():
+    """
+    We can launch multiple commands in sequence in nodes
+    """
+    node = JelasticNode(parent=jelenv, node_from_env=get_standard_node())
+
+    jelapic()._ = Mock(
+        return_value={
+            "responses": [
+                {
+                    "errOut": "",
+                    "exitStatus": 0,
+                    "nodeid": node.id,
+                    "out": "",
+                    "result": 0,
+                },
+                {
+                    "errOut": "",
+                    "exitStatus": 0,
+                    "nodeid": node.id,
+                    "out": "example.com",
+                    "result": 0,
+                }
+            ],
+            "result": 0,
+        },
+    )
+    assert node.execute_commands(["/bin/true", "echo 'example.com'"])
+    jelapic()._.assert_called_once()
+    with pytest.raises(TypeError):
+        # We can't shortcut the list for a single command
+        node.execute_commands("/bin/true")
+
+def test_JelasticNode_exec_command():
+    """
+    We can launch a single command in a node
+    """
+    node = JelasticNode(parent=jelenv, node_from_env=get_standard_node())
+
+    jelapic()._ = Mock(
+        return_value={
+            "responses": [
+                {
+                    "errOut": "",
+                    "exitStatus": 0,
+                    "nodeid": node.id,
+                    "out": "",
+                    "result": 0,
+                }
+            ],
+            "result": 0,
+        },
+    )
+    assert node.execute_command("/bin/true")
+    jelapic()._.assert_called_once()
+    with pytest.raises(TypeError):
+        # We can't extend the single command for a list
+        node.execute_command(["/bin/true", "echo 'example.com'"])

@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
@@ -250,3 +250,29 @@ class JelasticNode(_JelasticObject):
         """
         self._set_cloudlets()
         self._set_env_vars()
+
+    def execute_commands(self, commands: List[str]) -> List[Dict[str, str]]:
+        """
+        Execute a list of commands in this node
+        """
+        if not isinstance(commands, list):
+            raise TypeError("execute_commands() takes a a list of commands")
+        command_list = [{"command": cmd, "params": ""} for cmd in commands]
+        command_results = self.api._(
+            "Environment.Control.ExecCmdById",
+            envName=self.envName,
+            nodeid=self.id,
+            commandList=json.dumps(command_list),
+        )
+        return [
+            {k: cr[k] for k in ["out", "result", "errOut"]}
+            for cr in command_results["responses"]
+        ]
+
+    def execute_command(self, command: str) -> Dict[str, str]:
+        """
+        Execute a single command in this node
+        """
+        if not isinstance(command, str):
+            raise TypeError("execute_command() takes a string as command")
+        return self.execute_commands([command])[0]

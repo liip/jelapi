@@ -206,7 +206,7 @@ def test_JelasticNode_exec_commands():
                     "nodeid": node.id,
                     "out": "example.com",
                     "result": 0,
-                }
+                },
             ],
             "result": 0,
         },
@@ -216,6 +216,7 @@ def test_JelasticNode_exec_commands():
     with pytest.raises(TypeError):
         # We can't shortcut the list for a single command
         node.execute_commands("/bin/true")
+
 
 def test_JelasticNode_exec_command():
     """

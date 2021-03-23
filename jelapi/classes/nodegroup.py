@@ -1,15 +1,11 @@
 import json
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
     _JelAttrBool,
-    _JelAttrDict,
-    _JelAttrInt,
-    _JelAttrIPv4,
     _JelAttrList,
     _JelAttrStr,
 )
@@ -37,6 +33,7 @@ class JelasticNodeGroup(_JelasticObject):
 
     isSLBAccessEnabled = _JelAttrBool()
     displayName = _JelAttrStr()
+    nodes = _JelAttrList(checked_for_differences=False)
 
     def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
         """
@@ -58,6 +55,10 @@ class JelasticNodeGroup(_JelasticObject):
         )  # Apparently optional
         self._isSLBAccessEnabled = self._node_group.get("isSLBAccessEnabled")
 
+        # Start without nodes, they're added after init
+        if not getattr(self, "nodes", False):
+            self.nodes = []
+
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
@@ -69,7 +70,7 @@ class JelasticNodeGroup(_JelasticObject):
 
     def refresh_from_api(self) -> None:
         """
-        JelasticNodeGroups shoupld be refreshed by themselves
+        JelasticNodeGroups should be refreshed by themselves
         """
         # TODO
 
@@ -98,3 +99,5 @@ class JelasticNodeGroup(_JelasticObject):
         Mandatory _JelasticObject method, to save status to Jelastic
         """
         self._apply_data()
+        for n in self.nodes:
+            n.save()

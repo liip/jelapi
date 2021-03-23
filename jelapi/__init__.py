@@ -6,7 +6,7 @@ api_token = None
 hoster_domain = None
 
 
-from .classes import JelasticEnvironment, JelasticNode  # noqa
+from .classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup  # noqa
 from .exceptions import JelasticAPIException  # noqa
 
 _api_connector = None

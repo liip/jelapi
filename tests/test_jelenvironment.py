@@ -6,7 +6,7 @@ from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
 
-from .utils import get_standard_env, get_standard_node
+from .utils import get_standard_env, get_standard_node, get_standard_node_groups
 
 
 def test_JelasticEnvironment_with_enough_data():
@@ -452,9 +452,13 @@ def test_JelasticEnvironment_nodes():
         node["id"] = i
         nodes.append(node)
 
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), nodes=nodes)
+    jelenv = JelasticEnvironment(
+        jelastic_env=get_standard_env(),
+        node_groups=get_standard_node_groups(),
+        nodes=nodes,
+    )
     assert not jelenv.differs_from_api()
-    jelenv.nodes[0].fixedCloudlets = 8
+    jelenv.nodeGroups["cp"].nodes[0].fixedCloudlets = 8
     assert jelenv.differs_from_api()
 
     jelapic()._ = Mock(
@@ -462,6 +466,30 @@ def test_JelasticEnvironment_nodes():
     )
     jelenv.save()
     assert not jelenv.differs_from_api()
+
+
+def test_JelasticEnvironment_stranger_nodes():
+    """
+    JelasticEnvironment cannot be instantiated with nodes outside of the nodeGroups
+    """
+    nodes = [
+        get_standard_node(),
+    ]
+
+    #  Get a node groups' list without above nodes' nodegroup
+    node_groups = [
+        ngdict
+        for ngdict in get_standard_node_groups()
+        if ngdict["name"] != nodes[0]["nodeGroup"]
+    ]
+
+    get_standard_node_groups()
+    with pytest.raises(JelasticObjectException):
+        JelasticEnvironment(
+            jelastic_env=get_standard_env(),
+            node_groups=node_groups,
+            nodes=nodes,
+        )
 
 
 def test_JelasticEnvironment_node_fetcher():
@@ -477,7 +505,11 @@ def test_JelasticEnvironment_node_fetcher():
     nodes[0]["nodeGroup"] = "cp"
     nodes[1]["nodeGroup"] = "sqldb"
 
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), nodes=nodes)
+    jelenv = JelasticEnvironment(
+        jelastic_env=get_standard_env(),
+        node_groups=get_standard_node_groups(),
+        nodes=nodes,
+    )
 
     # Do not look by full NodeGroup object
     with pytest.raises(JelasticObjectException):

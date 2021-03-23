@@ -1,4 +1,11 @@
-from jelapi.classes import JelasticEnvironment
+from jelapi.classes import JelasticEnvironment, JelasticNodeGroup
+
+
+def get_standard_node_groups():
+    ngs = []
+    for ngtype in JelasticNodeGroup.NodeGroupType:
+        ngs.append({"name": ngtype.value})
+    return ngs
 
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains=None):
@@ -10,6 +17,7 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains
         "displayName": "initial displayName",
         "status": status,
         "extdomains": extdomains,
+        "nodeGroups": get_standard_node_groups(),
     }
 
 

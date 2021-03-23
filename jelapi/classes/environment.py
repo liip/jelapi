@@ -38,8 +38,7 @@ class JelasticEnvironment(_JelasticObject):
     shortdomain = _JelAttrStr(read_only=True)
     domain = _JelAttrStr(read_only=True)
     extdomains = _JelAttrList()
-    nodeGroups = _JelAttrDict()
-    nodes = _JelAttrList(checked_for_differences=False)
+    nodeGroups = _JelAttrDict(checked_for_differences=False)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -115,11 +114,16 @@ class JelasticEnvironment(_JelasticObject):
             else []
         )
         self.nodeGroups = {ng.nodeGroup.value: ng for ng in nodeGroupsList}
-        self.nodes = (
-            [JelasticNode(parent=self, node_from_env=node) for node in nodes]
-            if nodes
-            else []
-        )
+
+        # Now add nodes in the nodeGroup
+        if nodes:
+            for node in nodes:
+                jelnode = JelasticNode(parent=self, node_from_env=node)
+                if jelnode.nodeGroup.value not in self.nodeGroups:
+                    raise JelasticObjectException(
+                        "Environment got a node outside of one of its nodeGroups"
+                    )
+                self.nodeGroups[jelnode.nodeGroup.value].nodes.append(jelnode)
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -142,23 +146,9 @@ class JelasticEnvironment(_JelasticObject):
         self._update_from_getEnvInfo(
             jelastic_env=response["env"],
             env_groups=response.get("envGroups", []),
+            node_groups=response.get("nodeGroups", []),
             nodes=response.get("nodes", []),
         )
-        # api_nodes = response.get("nodes", [])
-        # # Remove the nodes not anymore in the API response
-        # for node in self.nodes:
-        #     if not any(node.id == n.id for n in api_nodes):
-        #         self.nodes.remove(node)
-        #     else:
-        #         # Update the present ones
-        #         node._update_from_dict(
-        #             envName=self.envName,
-        #             node_from_env=next(n for n in api_nodes if n["id"] == node.id),
-        #         )
-        # # Instantiate the new ones
-        # for rn in api_nodes:
-        #     if rn["id"] not in [n.id for n in self.nodes]:
-        #         self.nodes.append(JelasticNode(envName=self.envName, node_from_env=rn))
 
     def __str__(self) -> str:
         return f"JelasticEnvironment '{self.envName}' <https://{self.domain}>"
@@ -255,8 +245,6 @@ class JelasticEnvironment(_JelasticObject):
         self._set_running_status(self.status)
         for ng in self.nodeGroups.values():
             ng.save()
-        for n in self.nodes:
-            n.save()
 
     def node_by_node_group(self, node_group: str) -> JelasticNode:
         """
@@ -268,13 +256,12 @@ class JelasticEnvironment(_JelasticObject):
                 f"node_group value {node_group} not in {valid_node_groups}"
             )
 
-        for node in self.nodes:
-            if node.nodeGroup.value == node_group:
-                return node
-
-        raise JelasticObjectException(
-            f"node_group {node_group} not find in environment's nodes"
-        )
+        try:
+            return self.nodeGroups[node_group].nodes[0]
+        except IndexError:
+            raise JelasticObjectException(
+                f"node_group {node_group} not found in environment's nodes"
+            )
 
     def start(self) -> None:
         """

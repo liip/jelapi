@@ -3,12 +3,7 @@ from enum import Enum
 from typing import Any, Dict
 
 from .jelasticobject import _JelasticAttribute as _JelAttr
-from .jelasticobject import (
-    _JelasticObject,
-    _JelAttrBool,
-    _JelAttrList,
-    _JelAttrStr,
-)
+from .jelasticobject import _JelasticObject, _JelAttrBool, _JelAttrList, _JelAttrStr
 
 
 class JelasticNodeGroup(_JelasticObject):
@@ -101,3 +96,9 @@ class JelasticNodeGroup(_JelasticObject):
         self._apply_data()
         for n in self.nodes:
             n.save()
+
+    def __str__(self):
+        """
+        String representation
+        """
+        return f"JelasticNodeGroup {self.nodeGroup.value}"

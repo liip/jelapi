@@ -1,6 +1,10 @@
 from jelapi.classes import JelasticEnvironment, JelasticNodeGroup
 
 
+def get_standard_node_group():
+    return {"name": "cp"}
+
+
 def get_standard_node_groups():
     ngs = []
     for ngtype in JelasticNodeGroup.NodeGroupType:

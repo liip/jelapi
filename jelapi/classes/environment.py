@@ -124,9 +124,7 @@ class JelasticEnvironment(_JelasticObject):
                     )
 
                 node_group = self.nodeGroups[node["nodeGroup"]]
-                jelnode = JelasticNode(
-                    parent=self, node_group=node_group, node_from_env=node
-                )
+                jelnode = JelasticNode(node_group=node_group, node_from_env=node)
 
                 node_group.nodes.append(jelnode)
 

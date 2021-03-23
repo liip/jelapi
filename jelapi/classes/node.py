@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from typing import Any, Dict, List
 
 from ..exceptions import JelasticObjectException
@@ -13,6 +12,7 @@ from .jelasticobject import (
     _JelAttrList,
     _JelAttrStr,
 )
+from .nodegroup import JelasticNodeGroup
 
 
 class JelasticNode(_JelasticObject):
@@ -67,7 +67,6 @@ class JelasticNode(_JelasticObject):
 
     def _update_from_dict(
         self,
-        parent: "JelasticEnvironment",
         node_group: "JelasticNodeGroup",
         node_from_env: Dict[str, Any],
     ) -> None:
@@ -76,11 +75,11 @@ class JelasticNode(_JelasticObject):
         """
         # Allow exploration of the returned object, but don't act on it.
         self._node = node_from_env
-        self._parent = parent
         self._nodeGroup = node_group
 
         # Read-only attributes
-        self._envName = self._parent.envName
+        self._envName = self._nodeGroup._parent.envName
+
         for attr in [
             "id",
             "intIP",
@@ -127,16 +126,13 @@ class JelasticNode(_JelasticObject):
     def __init__(
         self,
         *,
-        parent: "JelasticEnvironment",
         node_group: "JelasticNodeGroup",
         node_from_env: Dict[str, Any],
     ) -> None:
         """
         Construct a JelasticNode from the outer data
         """
-        self._update_from_dict(
-            parent=parent, node_group=node_group, node_from_env=node_from_env
-        )
+        self._update_from_dict(node_group=node_group, node_from_env=node_from_env)
 
     def refresh_from_api(self) -> None:
         """
@@ -180,7 +176,7 @@ class JelasticNode(_JelasticObject):
 
         JelStatus = JelasticEnvironment.Status
 
-        if self._parent.status not in [
+        if self._nodeGroup._parent.status not in [
             JelStatus.RUNNING,
             JelStatus.CREATING,
             JelStatus.CLONING,

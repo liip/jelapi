@@ -70,6 +70,8 @@ class JelasticNode(_JelasticObject):
     fixedCloudlets = _JelAttrInt()
     # "maximum"
     flexibleCloudlets = _JelAttrInt()
+    allowFlexibleCloudletsReduction = _JelAttrBool(checked_for_differences=False)
+
     # Variables
     _envVars = (
         _JelAttrDict()
@@ -125,6 +127,8 @@ class JelasticNode(_JelasticObject):
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:
             setattr(self, attr, self._node[attr])
+        # By default, do not allow flexibleCloudlets' reduction
+        self.allowFlexibleCloudletsReduction = False
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -149,7 +153,14 @@ class JelasticNode(_JelasticObject):
             self._from_api["fixedCloudlets"] != self.fixedCloudlets
             or self._from_api["flexibleCloudlets"] != self.flexibleCloudlets
         ):
-            # TODO: Add a boolean to explicitely allow reducing the number of flexibleCloudlets
+            if self.flexibleCloudlets < self._from_api["flexibleCloudlets"]:
+                if not self.allowFlexibleCloudletsReduction:
+                    raise JelasticObjectException(
+                        "flexibleCloudlets cannot be reduced without setting allowFlexibleCloudletsReduction to True before save()"
+                    )
+                else:
+                    # Reset the authorization to False
+                    self.allowFlexibleCloudletsReduction = False
             self.api._(
                 "Environment.Control.SetCloudletsCountById",
                 envName=self.envName,

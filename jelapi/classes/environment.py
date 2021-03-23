@@ -118,12 +118,15 @@ class JelasticEnvironment(_JelasticObject):
         # Now add nodes in the nodeGroup
         if nodes:
             for node in nodes:
-                jelnode = JelasticNode(parent=self, node_from_env=node)
-                if jelnode.nodeGroup.value not in self.nodeGroups:
+                if node["nodeGroup"] not in self.nodeGroups:
                     raise JelasticObjectException(
                         "Environment got a node outside of one of its nodeGroups"
                     )
-                self.nodeGroups[jelnode.nodeGroup.value].nodes.append(jelnode)
+
+                node_group = self.nodeGroups[node["nodeGroup"]]
+                jelnode = JelasticNode(node_group=node_group, node_from_env=node)
+
+                node_group.nodes.append(jelnode)
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -250,7 +253,7 @@ class JelasticEnvironment(_JelasticObject):
         """
         Return a node by nodeGroup magic string
         """
-        valid_node_groups = [ng.value for ng in JelasticNode.NodeGroup]
+        valid_node_groups = [ng.value for ng in JelasticNodeGroup.NodeGroupType]
         if node_group not in valid_node_groups:
             raise JelasticObjectException(
                 f"node_group value {node_group} not in {valid_node_groups}"

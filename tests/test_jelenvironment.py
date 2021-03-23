@@ -511,9 +511,11 @@ def test_JelasticEnvironment_node_fetcher():
         nodes=nodes,
     )
 
+    from jelapi.classes import JelasticNodeGroup
+
     # Do not look by full NodeGroup object
     with pytest.raises(JelasticObjectException):
-        jelenv.node_by_node_group(JelasticNode.NodeGroup.CACHE)
+        jelenv.node_by_node_group(JelasticNodeGroup.NodeGroupType.CACHE)
 
     # If the node's not around, exception
     with pytest.raises(JelasticObjectException):

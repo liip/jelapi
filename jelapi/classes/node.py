@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from typing import Any, Dict, List
 
 from ..exceptions import JelasticObjectException
@@ -13,24 +12,13 @@ from .jelasticobject import (
     _JelAttrList,
     _JelAttrStr,
 )
+from .nodegroup import JelasticNodeGroup
 
 
 class JelasticNode(_JelasticObject):
     """
     Represents a Jelastic Node
     """
-
-    class NodeGroup(Enum):
-        """
-        Standard NodeGroups
-        """
-
-        LOAD_BALANCER = "bl"
-        APPLICATION_SERVER = "cp"
-        CACHE = "cache"
-        SQL_DATABASE = "sqldb"
-        NOSQL_DATABASE = "nosqldb"
-        STORAGE_CONTAINER = "storage"
 
     id = _JelAttrInt(read_only=True)
     envName = _JelAttrStr(read_only=True)
@@ -77,15 +65,21 @@ class JelasticNode(_JelasticObject):
         _JelAttrDict()
     )  # this is the JelAttr, use envVars to access them through lazy loading
 
-    def _update_from_dict(self, parent, node_from_env: Dict[str, Any]) -> None:
+    def _update_from_dict(
+        self,
+        node_group: "JelasticNodeGroup",
+        node_from_env: Dict[str, Any],
+    ) -> None:
         """
         Construct/Update our object from the structure
         """
         # Allow exploration of the returned object, but don't act on it.
         self._node = node_from_env
-        self._parent = parent
+        self._nodeGroup = node_group
+
         # Read-only attributes
-        self._envName = self._parent.envName
+        self._envName = self._nodeGroup._parent.envName
+
         for attr in [
             "id",
             "intIP",
@@ -120,10 +114,6 @@ class JelasticNode(_JelasticObject):
         ]:
             setattr(self, f"_{attr}", self._node[attr])
 
-        self._nodeGroup = next(
-            (ng for ng in self.NodeGroup if ng.value == self._node["nodeGroup"]),
-        )
-
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:
             setattr(self, attr, self._node[attr])
@@ -133,11 +123,16 @@ class JelasticNode(_JelasticObject):
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
-    def __init__(self, *, parent, node_from_env: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        *,
+        node_group: "JelasticNodeGroup",
+        node_from_env: Dict[str, Any],
+    ) -> None:
         """
         Construct a JelasticNode from the outer data
         """
-        self._update_from_dict(parent=parent, node_from_env=node_from_env)
+        self._update_from_dict(node_group=node_group, node_from_env=node_from_env)
 
     def refresh_from_api(self) -> None:
         """
@@ -181,7 +176,7 @@ class JelasticNode(_JelasticObject):
 
         JelStatus = JelasticEnvironment.Status
 
-        if self._parent.status not in [
+        if self._nodeGroup._parent.status not in [
             JelStatus.RUNNING,
             JelStatus.CREATING,
             JelStatus.CLONING,

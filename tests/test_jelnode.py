@@ -72,6 +72,18 @@ def test_JelasticNode_cloudlet_changes_let_differ_from_api():
     assert node.differs_from_api()
 
 
+def test_JelasticNode_flexibleCloudlet_reduction_allowance_doesnt_differ_from_api():
+    """
+    Setting the allowed flag doesn't make the node differ from API by itself
+    """
+    node = JelasticNode(parent=jelenv, node_from_env=get_standard_node())
+    assert not node.differs_from_api()
+    assert not node.allowFlexibleCloudletsReduction
+
+    node.allowFlexibleCloudletsReduction = True
+    assert not node.differs_from_api()
+
+
 def test_JelasticNode_set_cloudlets():
     """
     Setting any of fixed or flexible cloudlets calls the API once
@@ -79,6 +91,23 @@ def test_JelasticNode_set_cloudlets():
     jelapic()._ = Mock()
     node = JelasticNode(parent=jelenv, node_from_env=get_standard_node())
     node.fixedCloudlets = 3
+    node.save()
+    jelapic()._.assert_called_once()
+
+
+def test_JelasticNode_cannot_reduce_flexibleCloudlets():
+    """
+    Reducing the flexible cloudlets cannot be done without setting the allowed flag
+    """
+    node = JelasticNode(
+        parent=jelenv, node_from_env=get_standard_node(flexible_cloudlets=8)
+    )
+    node.flexibleCloudlets = 7
+    with pytest.raises(JelasticObjectException):
+        node.save()
+
+    jelapic()._ = Mock()
+    node.allowFlexibleCloudletsReduction = True
     node.save()
     jelapic()._.assert_called_once()
 

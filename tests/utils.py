@@ -1,4 +1,15 @@
-from jelapi.classes import JelasticEnvironment
+from jelapi.classes import JelasticEnvironment, JelasticNodeGroup
+
+
+def get_standard_node_group():
+    return {"name": "cp"}
+
+
+def get_standard_node_groups():
+    ngs = []
+    for ngtype in JelasticNodeGroup.NodeGroupType:
+        ngs.append({"name": ngtype.value})
+    return ngs
 
 
 def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains=None):
@@ -10,14 +21,15 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains
         "displayName": "initial displayName",
         "status": status,
         "extdomains": extdomains,
+        "nodeGroups": get_standard_node_groups(),
     }
 
 
-def get_standard_node():
+def get_standard_node(fixed_cloudlets: int = 1, flexible_cloudlets: int = 1):
     return {
         "id": 1,
-        "fixedCloudlets": 1,
-        "flexibleCloudlets": 1,
+        "fixedCloudlets": fixed_cloudlets,
+        "flexibleCloudlets": flexible_cloudlets,
         "intIP": "192.0.2.1",
         "nodeGroup": "cp",
         "url": "https://test.example.com",

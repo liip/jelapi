@@ -140,6 +140,9 @@ class _JelasticObject(ABC):
                 elif isinstance(descriptor_class, _JelAttrList):
                     if any(item.differs_from_api() for item in v):
                         return True
+                elif isinstance(descriptor_class, _JelAttrDict):
+                    if any(item.differs_from_api() for item in v.values()):
+                        return True
         return False
 
     @abstractmethod

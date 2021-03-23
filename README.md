@@ -32,5 +32,9 @@ cpnode = jelenv.node_by_node_group("cp")
 cpnode.fixedCloudlets = 2
 cpnode.envVars["AN_ENV_VARIABLE"] = "Content"
 
+sqlnode = jelenv.nodeGroups["sqldb"].nodes[0]
+sqlnode.flexibleCloudlets = max(sqlnode.flexibleCloudlets - 2, 0)
+sqlnode.allowFlexibleCloudletsReduction = True
+
 jelenv.save()
 ```

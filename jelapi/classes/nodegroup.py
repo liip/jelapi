@@ -2,8 +2,15 @@ import json
 from enum import Enum
 from typing import Any, Dict
 
+from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
-from .jelasticobject import _JelasticObject, _JelAttrBool, _JelAttrList, _JelAttrStr
+from .jelasticobject import (
+    _JelasticObject,
+    _JelAttrBool,
+    _JelAttrDict,
+    _JelAttrList,
+    _JelAttrStr,
+)
 
 
 class JelasticNodeGroup(_JelasticObject):
@@ -29,6 +36,61 @@ class JelasticNodeGroup(_JelasticObject):
     isSLBAccessEnabled = _JelAttrBool()
     displayName = _JelAttrStr()
     nodes = _JelAttrList(checked_for_differences=False)
+
+    # Variables
+    _envVars = (
+        _JelAttrDict()
+    )  # this is the JelAttr, use envVars to access them through lazy loading
+
+    @property
+    def envVars(self):
+        """
+        Lazy load envVars when they're accessed
+        """
+        from .environment import JelasticEnvironment
+
+        JelStatus = JelasticEnvironment.Status
+
+        if self._parent.status not in [
+            JelStatus.RUNNING,
+            JelStatus.CREATING,
+            JelStatus.CLONING,
+        ]:
+            raise JelasticObjectException(
+                "envVars cannot be gathered on environments not running"
+            )
+        if not hasattr(self, "_envVars"):
+            response = self.api._(
+                "Environment.Control.GetContainerEnvVarsByGroup",
+                envName=self.envName,
+                nodeGroup=self.nodeGroup.value,
+            )
+            self._envVars = response["object"]
+            self.copy_self_as_from_api("_envVars")
+        return self._envVars
+
+    def _set_env_vars(self):
+        """
+        Set the modified envVars
+        """
+        # Only set them if they were fetched first
+        if hasattr(self, "_envVars"):
+            if "_envVars" not in self._from_api:
+                raise JelasticObjectException(
+                    "envVars cannot be saved if not fetched first (no blind set)"
+                )
+            if len(self._envVars) == 0:
+                raise JelasticObjectException(
+                    "envVars cannot be set to empty (no wipe out)"
+                )
+            if self._from_api["_envVars"] != self._envVars:
+                self.api._(
+                    "Environment.Control.SetContainerEnvVarsByGroup",
+                    envName=self.envName,
+                    nodeGroup=self.nodeGroup.value,
+                    data=json.dumps(self._envVars),
+                )
+                self.copy_self_as_from_api("_envVars")
 
     def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
         """
@@ -94,6 +156,7 @@ class JelasticNodeGroup(_JelasticObject):
         Mandatory _JelasticObject method, to save status to Jelastic
         """
         self._apply_data()
+        self._set_env_vars()
         for n in self.nodes:
             n.save()
 

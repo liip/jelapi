@@ -1,4 +1,5 @@
 from copy import deepcopy
+
 from unittest.mock import Mock
 
 import pytest
@@ -116,46 +117,14 @@ def test_JelasticNode_cannot_reduce_flexibleCloudlets():
     jelapic()._.assert_called_once()
 
 
-def test_JelasticNode_envVars_refreshes_from_API():
+def test_JelasticNode_envVars_works_but_takes_from_node_group():
     """
-    Getting the envVars gets us an API call
+    Getting the envVars gets us the nodeGroups'
     """
+    node_group._envVars = {"TEST": "example.com"}
     node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    assert "VAR" in node.envVars
-    assert node.envVars["VAR"] == "value"
-    # As we lazy-load, accessing the dict will call the API once
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
-
-
-def test_JelasticNode_envVars_raises_if_set_without_fetch():
-    """
-    Saving a faked envVars without fetch will raise
-    """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    node._envVars = {"ID": "evil"}
-    with pytest.raises(JelasticObjectException):
-        node.save()
-
-
-def test_JelasticNode_envVars_raises_if_set_empty():
-    """
-    Saving a faked envVars without fetch will raise
-    """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    # fetch it
-    node.envVars
-    # empty it
-    node._envVars = {}
-    with pytest.raises(JelasticObjectException):
-        node.save()
+    assert "TEST" in node.envVars
+    assert node.envVars["TEST"] == "example.com"
 
 
 def test_JelasticNode_envVars_raises_if_env_is_not_running():
@@ -186,40 +155,6 @@ def test_JelasticNode_envVars_raises_if_env_is_not_running():
         else:
             with pytest.raises(JelasticObjectException):
                 node.envVars
-
-
-def test_JelasticNode_envVars_updates():
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    assert node.envVars["VAR"] == "value"
-    # As we lazy-load, accessing the dict will call the API once
-    jelapic()._.assert_called_once()
-
-    node.envVars["NEWVAR"] = "revolution"
-    assert node.differs_from_api()
-    jelapic()._ = Mock(return_value={"result": 0})
-    # Save the addition, it will work, and call one _add_
-    node.save()
-    assert not node.differs_from_api()
-    jelapic()._.assert_called_once()
-
-    jelapic()._.reset_mock()
-    del node.envVars["NEWVAR"]
-    # Save the removal, it will work, and call one _remove_
-    node.save()
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
-
-    # Now test both addition and removal, this will do a single "set"
-    node.envVars["NEWVAR"] = "new"
-    del node.envVars["VAR"]
-    jelapic()._.reset_mock()
-    node.save()
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
 
 
 def test_JelasticNode_exec_commands():

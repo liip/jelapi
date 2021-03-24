@@ -6,7 +6,6 @@ from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
     _JelAttrBool,
-    _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
     _JelAttrList,
@@ -59,11 +58,6 @@ class JelasticNode(_JelasticObject):
     # "maximum"
     flexibleCloudlets = _JelAttrInt()
     allowFlexibleCloudletsReduction = _JelAttrBool(checked_for_differences=False)
-
-    # Variables
-    _envVars = (
-        _JelAttrDict()
-    )  # this is the JelAttr, use envVars to access them through lazy loading
 
     def _update_from_dict(
         self,
@@ -170,92 +164,15 @@ class JelasticNode(_JelasticObject):
     @property
     def envVars(self):
         """
-        Lazy load envVars when they're accessed
+        Access the lazy-loaded vars from the nodeGroup, always
         """
-        from .environment import JelasticEnvironment
-
-        JelStatus = JelasticEnvironment.Status
-
-        if self._nodeGroup._parent.status not in [
-            JelStatus.RUNNING,
-            JelStatus.CREATING,
-            JelStatus.CLONING,
-        ]:
-            raise JelasticObjectException(
-                "envVars cannot be gathered on environments not running"
-            )
-        if not hasattr(self, "_envVars"):
-            response = self.api._(
-                "Environment.Control.GetContainerEnvVars",
-                envName=self.envName,
-                nodeId=self.id,
-            )
-            self._envVars = response["object"]
-            self.copy_self_as_from_api("_envVars")
-        return self._envVars
-
-    def _set_env_vars(self):
-        """
-        Set the modified envVars
-        """
-        # Only set them if they were fetched first
-        if hasattr(self, "_envVars"):
-            if "_envVars" not in self._from_api:
-                raise JelasticObjectException(
-                    "envVars cannot be saved if not fetched first (no blind set)"
-                )
-            if len(self._envVars) == 0:
-                raise JelasticObjectException(
-                    "envVars cannot be set to empty (no wipe out)"
-                )
-            if self._from_api["_envVars"] != self._envVars:
-                # Only remove vars that need to be removed
-                vars_to_remove = [
-                    k
-                    for k, v in self._from_api["_envVars"].items()
-                    if k not in self._envVars
-                ]
-
-                # Only add or update vars that need doing so.
-                vars_to_add_or_update = {
-                    k: v
-                    for k, v in self._envVars.items()
-                    if k not in self._from_api["_envVars"]
-                    or v != self._from_api["_envVars"][k]
-                }
-                if len(vars_to_remove) > 0:
-                    if len(vars_to_add_or_update) > 0:
-                        # Both need doing, do one shot only
-                        self.api._(
-                            "Environment.Control.SetContainerEnvVars",
-                            envName=self.envName,
-                            nodeId=self.id,
-                            vars=json.dumps(self._envVars),
-                        )
-                    else:
-                        self.api._(
-                            "Environment.Control.RemoveContainerEnvVars",
-                            envName=self.envName,
-                            nodeId=self.id,
-                            vars=json.dumps(vars_to_remove),
-                        )
-                elif len(vars_to_add_or_update) > 0:
-                    # Add = "Set or Replace"
-                    self.api._(
-                        "Environment.Control.AddContainerEnvVars",
-                        envName=self.envName,
-                        nodeId=self.id,
-                        vars=json.dumps(vars_to_add_or_update),
-                    )
-
-                self.copy_self_as_from_api("_envVars")
+        return self._nodeGroup.envVars
 
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
         """
         self._set_cloudlets()
-        self._set_env_vars()
 
     def execute_commands(self, commands: List[str]) -> List[Dict[str, str]]:
         """

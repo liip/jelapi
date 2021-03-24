@@ -261,7 +261,7 @@ class JelasticEnvironment(_JelasticObject):
 
         try:
             return self.nodeGroups[node_group].nodes[0]
-        except IndexError:
+        except (IndexError, KeyError):
             raise JelasticObjectException(
                 f"node_group {node_group} not found in environment's nodes"
             )

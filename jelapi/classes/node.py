@@ -174,6 +174,7 @@ class JelasticNode(_JelasticObject):
         """
         self._set_cloudlets()
 
+    # Jelastic-related utilities
     def execute_commands(self, commands: List[str]) -> List[Dict[str, str]]:
         """
         Execute a list of commands in this node
@@ -199,3 +200,17 @@ class JelasticNode(_JelasticObject):
         if not isinstance(command, str):
             raise TypeError("execute_command() takes a string as command")
         return self.execute_commands([command])[0]
+
+    def read_file(self, path: str) -> str:
+        """
+        Read a file in a node
+        """
+        if not path:
+            raise TypeError(f"path {path} cannot be empty")
+        response = self.api._(
+            "Environment.File.Read",
+            envName=self.envName,
+            nodeid=self.id,
+            path=path,
+        )
+        return response["body"]

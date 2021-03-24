@@ -209,3 +209,25 @@ def test_JelasticNodeGroup_redeploy():
     )
     assert not node_group.differs_from_api()
     node_group.redeploy(docker_tag="latest")
+
+
+def test_JelasticNodeGroup_read_file():
+    """
+    We can gather a single file in a nodegroup
+    """
+    node_group = JelasticNodeGroup(
+        parent=jelenv, node_group_from_env=get_standard_node_group()
+    )
+    jelapic()._ = Mock(
+        return_value={
+            "body": "Text content",
+            "result": 0,
+        },
+    )
+    with pytest.raises(TypeError):
+        # We can't read no file
+        node_group.read_file("")
+
+    body = node_group.read_file("/tmp/test")
+    jelapic()._.assert_called_once()
+    assert body == "Text content"

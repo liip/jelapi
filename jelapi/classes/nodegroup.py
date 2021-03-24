@@ -167,6 +167,20 @@ class JelasticNodeGroup(_JelasticObject):
         return f"JelasticNodeGroup {self.nodeGroup.value}"
 
     # Jelastic-related utilites
+    def read_file(self, path: str) -> str:
+        """
+        Read a file in a nodeGroup
+        """
+        if not path:
+            raise TypeError(f"path {path} cannot be empty")
+        response = self.api._(
+            "Environment.File.Read",
+            envName=self.envName,
+            nodeGroup=self.nodeGroup.value,
+            path=path,
+        )
+        return response["body"]
+
     def redeploy(self, docker_tag: str = "latest"):
         """
         Redeploy a nodeGroup to a certain docker tag

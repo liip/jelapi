@@ -216,3 +216,24 @@ def test_JelasticNode_exec_command():
     with pytest.raises(TypeError):
         # We can't extend the single command for a list
         node.execute_command(["/bin/true", "echo 'example.com'"])
+
+
+def test_JelasticNode_read_file():
+    """
+    We can gather a single file in a node
+    """
+    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+
+    jelapic()._ = Mock(
+        return_value={
+            "body": "Text content",
+            "result": 0,
+        },
+    )
+    with pytest.raises(TypeError):
+        # We can't read no file
+        node.read_file("")
+
+    body = node.read_file("/tmp/test")
+    jelapic()._.assert_called_once()
+    assert body == "Text content"

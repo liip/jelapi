@@ -266,6 +266,17 @@ class JelasticEnvironment(_JelasticObject):
                 f"node_group {node_group} not found in environment's nodes"
             )
 
+    def get_sumstats(self, duration_in_seconds: int) -> List[str]:
+        """
+        Get usage stats
+        """
+        response = self.api._(
+            "Environment.Control.GetSumStat",
+            envName=self.envName,
+            duration=duration_in_seconds,
+        )
+        return response["stats"]
+
     def start(self) -> None:
         """
         Start Environment immediately

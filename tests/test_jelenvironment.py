@@ -48,6 +48,7 @@ def test_JelasticEnvironment_list_all():
             ]
         },
     )
+    JelasticEnvironment.list.cache_clear()
     jelenvs = JelasticEnvironment.list()
     assert isinstance(jelenvs, dict)
     first_jelenvname = list(jelenvs)[0]
@@ -62,6 +63,47 @@ def test_JelasticEnvironment_list_all():
     # Let's clear the lru_cache
     JelasticEnvironment.list.cache_clear()
     JelasticEnvironment.list()
+    jelapic()._.assert_called_once()
+
+
+def test_JelasticEnvironment_list_with_nodes():
+    """
+    JelasticEnvironment can be instantiated with nodes
+    """
+    # With an empty node_groups, that'll fail.
+    jelapic()._ = Mock(
+        return_value={
+            "infos": [
+                {
+                    "env": get_standard_env(),
+                    "nodeGroups": [],
+                    "nodes": [get_standard_node()],
+                    "envGroups": [],
+                },
+            ]
+        },
+    )
+    with pytest.raises(JelasticObjectException):
+        JelasticEnvironment.list.cache_clear()
+        jelenvs = JelasticEnvironment.list()
+
+    jelapic()._ = Mock(
+        return_value={
+            "infos": [
+                {
+                    "env": get_standard_env(),
+                    "nodeGroups": get_standard_node_groups(),
+                    "nodes": [get_standard_node()],
+                    "envGroups": [],
+                },
+            ]
+        },
+    )
+    JelasticEnvironment.list.cache_clear()
+    jelenvs = JelasticEnvironment.list()
+    assert isinstance(jelenvs, dict)
+    first_jelenvname = list(jelenvs)[0]
+    assert isinstance(jelenvs[first_jelenvname], JelasticEnvironment)
     jelapic()._.assert_called_once()
 
 

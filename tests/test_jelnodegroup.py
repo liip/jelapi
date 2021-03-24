@@ -198,3 +198,14 @@ def test_JelasticNodeGroup_SLB_update():
     node_group.save()
     assert not node_group.differs_from_api()
     jelapic()._.assert_called_once()
+
+
+def test_JelasticNodeGroup_redeploy():
+    """
+    NodeGroups can be redeployed
+    """
+    node_group = JelasticNodeGroup(
+        parent=jelenv, node_group_from_env=get_standard_node_group()
+    )
+    assert not node_group.differs_from_api()
+    node_group.redeploy(docker_tag="latest")

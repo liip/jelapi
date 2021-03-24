@@ -564,3 +564,19 @@ def test_JelasticEnvironment_node_fetcher():
         jelenv.node_by_node_group("nosqldb")
 
     assert isinstance(jelenv.node_by_node_group("cp"), JelasticNode)
+
+
+def test_JelasticEnvironment_sumstats():
+    """
+    We can get Environment sumstats
+    """
+    jelapic()._ = Mock(
+        return_value={"stats": []},  # Of course there is something in that dict.
+    )
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    with pytest.raises(TypeError):
+        # duration is needed
+        jelenv.get_sumstats()
+
+    # Fetch 8 hours'
+    jelenv.get_sumstats(8 * 60 * 60)

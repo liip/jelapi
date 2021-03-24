@@ -72,7 +72,7 @@ class JelasticEnvironment(_JelasticObject):
             info["env"]["envName"]: JelasticEnvironment(
                 jelastic_env=info["env"],
                 env_groups=info.get("envGroups", []),
-                node_groups=response.get("nodeGroups", []),
+                node_groups=info.get("nodeGroups", []),
                 nodes=info.get("nodes", []),
             )
             for info in response["infos"]

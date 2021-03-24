@@ -165,3 +165,15 @@ class JelasticNodeGroup(_JelasticObject):
         String representation
         """
         return f"JelasticNodeGroup {self.nodeGroup.value}"
+
+    # Jelastic-related utilites
+    def redeploy(self, docker_tag: str = "latest"):
+        """
+        Redeploy a nodeGroup to a certain docker tag
+        """
+        self.api._(
+            "Environment.Control.RedeployContainersByGroup",
+            envName=self.envName,
+            nodeGroup=self.nodeGroup.value,
+            tag=docker_tag,
+        )

@@ -2,7 +2,7 @@
 
 from setuptools import find_packages, setup
 
-__version__ = "0.1.0rc5"
+__version__ = "0.1.0rc6"
 
 install_requires = ["httpx[http2]"]
 test_requires = ["respx", "pytest-cov"]

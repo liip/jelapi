@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from datetime import datetime
 from typing import Any, Dict
 
 
@@ -53,6 +54,12 @@ class _JelAttrInt(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, int):
             raise TypeError(f"{value} is no int")
+
+
+class _JelAttrDatetime(_JelasticAttribute):
+    def typecheck(self, value: Any) -> None:
+        if not isinstance(value, datetime):
+            raise TypeError(f"{value} is no datetime")
 
 
 class _JelAttrDict(_JelasticAttribute):
@@ -117,9 +124,26 @@ class _JelasticObject(ABC):
                 and not descriptor_class.read_only
             ):
                 self._from_api[k] = deepcopy(v)
-        # TODO Add an "updated_at" attribute
+
+        self._from_api["copied_to_api_at"] = datetime.now()
+
+    @property
+    def is_from_api(self) -> bool:
+        """
+        Whether it was from API or is a new instance
+        """
+        try:
+            return hasattr(self, "_from_api") and "copied_to_api_at" in self._from_api
+        except TypeError:
+            return False
 
     def differs_from_api(self) -> bool:
+        """
+        Check if the JelasticAttributes differ from the API
+        """
+        if not self.is_from_api:
+            return False
+
         for k, v in vars(self).items():
             if k[0] == "_":
                 # Check public_name

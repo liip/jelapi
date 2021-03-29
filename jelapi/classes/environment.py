@@ -82,7 +82,7 @@ class JelasticEnvironment(_JelasticObject):
         self,
         jelastic_env: Dict[str, Any],
         env_groups: Optional[List[str]] = None,
-        node_groups: Optional[List[str]] = None,
+        node_groups: Optional[List[Dict[str, Any]]] = None,
         nodes: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
@@ -137,7 +137,7 @@ class JelasticEnvironment(_JelasticObject):
         *,
         jelastic_env: Dict[str, Any],
         env_groups: Optional[List[str]] = None,
-        node_groups: Optional[List[str]] = None,
+        node_groups: Optional[List[Dict[str, Any]]] = None,
         nodes: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """

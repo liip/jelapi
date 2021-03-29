@@ -123,6 +123,7 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Construct a JelasticNodeGroup from the outer data
         """
+        super().__init__()
         self._update_from_dict(parent=parent, node_group_from_env=node_group_from_env)
 
     def refresh_from_api(self) -> None:

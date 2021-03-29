@@ -1,3 +1,5 @@
+import logging
+
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
@@ -97,6 +99,19 @@ class _JelasticObject(ABC):
     """
 
     _from_api: Dict[str, Any] = None
+    _logger: logging.Logger
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Instantiate logger
+        """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def _tracelog(self, msg, *args, **kwargs):
+        """
+        Coding-level tracer, if needed
+        """
+        return self._logger.log(logging.DEBUG - 1, msg, *args, **kwargs)
 
     def copy_self_as_from_api(self, only_this_key: str = None) -> None:
         """

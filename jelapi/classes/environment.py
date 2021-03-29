@@ -143,6 +143,7 @@ class JelasticEnvironment(_JelasticObject):
         """
         Construct a JelasticEnvironment from various data sources
         """
+        super().__init__()
         self._update_from_getEnvInfo(jelastic_env, env_groups, node_groups, nodes)
 
     def refresh_from_api(self) -> None:

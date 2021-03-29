@@ -157,6 +157,7 @@ class _JelasticObject(ABC):
         Check if the JelasticAttributes differ from the API
         """
         if not self.is_from_api:
+            self._tracelog(f"differs_from_api() = {True} (as is_from_api = {False})")
             return True
 
         for k, v in vars(self).items():
@@ -175,16 +176,37 @@ class _JelasticObject(ABC):
             ):
                 if descriptor_class.checked_for_differences:
                     if k not in self._from_api or self._from_api[k] != v:
+                        self._tracelog(
+                            f"differs_from API because k:{k} was checked and differs"
+                        )
                         return True
                 elif isinstance(descriptor_class, _JelAttrList):
+                    self._tracelog(
+                        f"Check if list {k} differs from API; {v} vs {self._from_api[k]}"
+                    )
                     if len(v) != len(self._from_api[k]):
+                        self._tracelog(
+                            f"differs_from API because list:{k} was checked for length and differs from API ({len(v)} != {len(self._from_api[k])})"
+                        )
                         return True
                     if any(item.differs_from_api() for item in v):
+                        self._tracelog(
+                            f"differs_from API because list:{k} was checked and one item differs"
+                        )
                         return True
                 elif isinstance(descriptor_class, _JelAttrDict):
+                    self._tracelog(
+                        f"Check if dict {k} differs from API; {v} vs {self._from_api[k]}"
+                    )
                     if len(v) != len(self._from_api[k]):
+                        self._tracelog(
+                            f"differs_from API because dict:{k} was checked for length and differs from API ({len(v)} != {len(self._from_api[k])})"
+                        )
                         return True
                     if any(item.differs_from_api() for item in v.values()):
+                        self._tracelog(
+                            f"differs_from API because dict:{k} was checked and one item differs"
+                        )
                         return True
         return False
 
@@ -207,8 +229,10 @@ class _JelasticObject(ABC):
         """
         if self.differs_from_api():
             # Implements the saving of the changes to Jelastic
+            self._tracelog("save() -> differs_from_api() -> save_to_jelastic()")
             self.save_to_jelastic()
             # Fetches, to verify changes were proceeded with correctly
+            self._tracelog("save() -> differs_from_api() -> refresh_from_api()")
             self.refresh_from_api()
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
         assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."

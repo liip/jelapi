@@ -159,6 +159,7 @@ class JelasticNodeGroup(_JelasticObject):
         self._set_env_vars()
         for n in self.nodes:
             n.save()
+        self.copy_self_as_from_api("nodes")
 
     def __str__(self):
         """

@@ -127,6 +127,7 @@ class JelasticEnvironment(_JelasticObject):
                 jelnode = JelasticNode(node_group=node_group, node_from_env=node)
 
                 node_group.nodes.append(jelnode)
+                node_group.copy_self_as_from_api("nodes")
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()

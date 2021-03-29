@@ -142,7 +142,7 @@ class _JelasticObject(ABC):
         Check if the JelasticAttributes differ from the API
         """
         if not self.is_from_api:
-            return False
+            return True
 
         for k, v in vars(self).items():
             if k[0] == "_":
@@ -162,9 +162,13 @@ class _JelasticObject(ABC):
                     if k not in self._from_api or self._from_api[k] != v:
                         return True
                 elif isinstance(descriptor_class, _JelAttrList):
+                    if len(v) != len(self._from_api[k]):
+                        return True
                     if any(item.differs_from_api() for item in v):
                         return True
                 elif isinstance(descriptor_class, _JelAttrDict):
+                    if len(v) != len(self._from_api[k]):
+                        return True
                     if any(item.differs_from_api() for item in v.values()):
                         return True
         return False

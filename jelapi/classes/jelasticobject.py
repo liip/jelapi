@@ -1,5 +1,4 @@
 import logging
-
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime

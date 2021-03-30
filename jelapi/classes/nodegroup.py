@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
@@ -41,6 +41,14 @@ class JelasticNodeGroup(_JelasticObject):
     _envVars = (
         _JelAttrDict()
     )  # this is the JelAttr, use envVars to access them through lazy loading
+
+    _mountPoints = _JelAttrList(
+        checked_for_differences=False
+    )  # this is the JelAttr, use mountPoints to access them through lazy loading
+
+    _containerVolumes = (
+        _JelAttrList()
+    )  # this is the JelAttr, use containerVolumes to access them through lazy loading
 
     @property
     def envVars(self):
@@ -91,6 +99,112 @@ class JelasticNodeGroup(_JelasticObject):
                     data=json.dumps(self._envVars),
                 )
                 self.copy_self_as_from_api("_envVars")
+
+    @property
+    def mountPoints(self) -> List["JelasticMountPoint"]:
+        """
+        Lazy load mountPoints when they're accessed
+        """
+        from .mountpoint import JelasticMountPoint
+
+        if not hasattr(self, "_mountPoints"):
+            response = self.api._(
+                "Environment.File.GetMountPoints",
+                envName=self.envName,
+                nodeGroup=self.nodeGroup.value,
+            )
+            self._mountPoints = [
+                JelasticMountPoint(node_group=self, mount_point_from_api=mp)
+                for mp in response["array"]
+            ]
+            self.copy_self_as_from_api("_mountPoints")
+        return self._mountPoints
+
+    def _save_mount_points(self):
+        """
+        Verify that the mount points have not changed, apply the changes
+        """
+        # Only check them if they were accessed
+        if hasattr(self, "_mountPoints"):
+            mountpaths = [m.path for m in self.mountPoints]
+            if len(set(mountpaths)) != len(mountpaths):
+                raise JelasticObjectException(
+                    f"Duplicate MountPoints won't work {','.join(mountpaths)}"
+                )
+            # Delete the obsolete mountpaths
+            for mp in self._from_api["_mountPoints"]:
+                if mp.path not in mountpaths:
+                    mp.del_from_api()
+                mp.save()
+
+            # Create the new mountpaths
+            for mp in self.mountPoints:
+                if not mp.is_from_api:
+                    mp.add_to_api()
+                mp.save()
+                assert not mp.differs_from_api()
+
+            self.copy_self_as_from_api("_mountPoints")
+
+    @property
+    def containerVolumes(self) -> List[str]:
+        """
+        Lazy load containerVolumes when they're accessed
+        """
+
+        if not hasattr(self, "_containerVolumes"):
+            response = self.api._(
+                "Environment.Control.GetContainerVolumesByGroup",
+                envName=self.envName,
+                nodeGroup=self.nodeGroup.value,
+            )
+            # We need to exclude the mountPoints
+            self._containerVolumes = [
+                cv
+                for cv in response["object"]
+                if cv not in [mp.path for mp in self.mountPoints]
+            ]
+            self.copy_self_as_from_api("_containerVolumes")
+        return self._containerVolumes
+
+    def _save_container_volumes(self):
+        """
+        Verify that the container volumes have not changed, apply the changes
+        """
+        # Only check them if they were accessed
+        if hasattr(self, "_containerVolumes"):
+            if len(set(self.containerVolumes)) != len(self.containerVolumes):
+                raise JelasticObjectException(
+                    f"Duplicate Container Volumes won't work {','.join(self.containerVolumes)}"
+                )
+            # Delete the obsolete containerVolumes
+            toremove = [
+                cv
+                for cv in self._from_api["_containerVolumes"]
+                if cv not in self.containerVolumes
+            ]
+            if len(toremove) > 0:
+                self.api._(
+                    "Environment.Control.RemoveContainerVolumes",
+                    envName=self.envName,
+                    nodeGroup=self.nodeGroup.value,
+                    volumes=json.dumps(toremove),
+                )
+
+            # Create the new mountpaths
+            toadd = [
+                cv
+                for cv in self.containerVolumes
+                if cv not in self._from_api["_containerVolumes"]
+            ]
+            if len(toadd) > 0:
+                self.api._(
+                    "Environment.Control.AddContainerVolumes",
+                    envName=self.envName,
+                    nodeGroup=self.nodeGroup.value,
+                    volumes=json.dumps(toadd),
+                )
+            self.copy_self_as_from_api("_containerVolumes")
 
     def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
         """
@@ -161,6 +275,8 @@ class JelasticNodeGroup(_JelasticObject):
         for n in self.nodes:
             n.save()
         self.copy_self_as_from_api("nodes")
+        self._save_container_volumes()
+        self._save_mount_points()
 
     def __str__(self):
         """

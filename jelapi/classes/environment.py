@@ -271,7 +271,12 @@ class JelasticEnvironment(_JelasticObject):
         """
         Save the nodeGroups, eventually update the topology first if needed.
         """
-        if self._from_api["nodeGroups"] != self.nodeGroups:
+        # Determine if a topology change is needed
+        if (
+            "nodeGroups" not in self._from_api
+            or len(self._from_api["nodeGroups"]) != len(self.nodeGroups)
+            or any(ng.needs_topology_update() for ng in self.nodeGroups.values())
+        ):
             # We need to force the API to match what we want.
             # First, no wipeout of nodeGroups
             if len(self.nodeGroups) == 0:

@@ -136,8 +136,9 @@ class JelasticNodeGroup(_JelasticObject):
             for link in self.nodes[0].links:
                 for node_group in self._parent.nodeGroups.values():
                     if link["sourceNodeId"] in [n.id for n in node_group.nodes]:
-                        self._links[link["alias"]] = node_group.NodeGroupType
+                        self._links[link["alias"]] = node_group.nodeGroup
                         break
+            self.copy_self_as_from_api("_links")
 
         return self._links
 
@@ -272,6 +273,15 @@ class JelasticNodeGroup(_JelasticObject):
                 )
                 topology["links"].append(f"{node_group}:{key}")
         return topology
+
+    def needs_topology_update(self):
+        """
+        Whether the ng needs a topology update from the environment
+        """
+        if not hasattr(self, "_links"):
+            # Never fetched, no need
+            return False
+        return self._from_api["_links"] != self._links
 
     def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
         """

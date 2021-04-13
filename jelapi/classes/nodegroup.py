@@ -50,6 +50,10 @@ class JelasticNodeGroup(_JelasticObject):
         _JelAttrList()
     )  # this is the JelAttr, use containerVolumes to access them through lazy loading
 
+    _links = (
+        _JelAttrDict()
+    )  # this is the JelAttr, use links to access them through lazy loading
+
     @property
     def envVars(self):
         """
@@ -119,6 +123,23 @@ class JelasticNodeGroup(_JelasticObject):
             ]
             self.copy_self_as_from_api("_mountPoints")
         return self._mountPoints
+
+    @property
+    def links(self) -> Dict[str, NodeGroupType]:
+        """
+        "IN"wards links dict {"key": ng}
+        """
+        if len(self.nodes) == 0:
+            raise JelasticObjectException("Links can't be fetched without nodes")
+        if not hasattr(self, "_links"):
+            self._links = {}
+            for link in self.nodes[0].links:
+                for node_group in self._parent.nodeGroups.values():
+                    if link["sourceNodeId"] in [n.id for n in node_group.nodes]:
+                        self._links[link["alias"]] = node_group.NodeGroupType
+                        break
+
+        return self._links
 
     def _save_mount_points(self):
         """
@@ -206,6 +227,52 @@ class JelasticNodeGroup(_JelasticObject):
                 )
             self.copy_self_as_from_api("_containerVolumes")
 
+    def get_topology(self) -> Dict[str, Any]:
+        """
+        Return the "NodeGroup / Nodes" topology, as consumed by ChangeTopology
+        """
+        if len(self.nodes) == 0:
+            raise JelasticObjectException("Can't get topology for an empty nodeGroup")
+        # return {"count": , "restartDelay": 0, "nod"}
+        node0 = self.nodes[0]
+        topology = {
+            "count": len(self.nodes),
+            "restartDelay": 0,
+            "displayName": self.displayName,
+            "nodeGroup": self.nodeGroup.value,
+            "nodeType": node0.nodeType.value,
+            "mission": node0.nodemission,
+            "fixedCloudlets": node0.fixedCloudlets,
+            "flexibleCloudlets": node0.flexibleCloudlets,
+        }
+        from .node import JelasticNode
+
+        if node0.nodeType == JelasticNode.NodeType.DOCKER:
+            if hasattr(node0, "docker_registry"):
+                topology["registry"] = {"url": node0.docker_registry["url"]}
+                topology["docker"] = {
+                    "registry": node0.docker_registry,
+                    "image": node0.docker_image,
+                }
+
+            # The important links
+            topology["links"] = []
+            for key, ngtype in self.links.items():
+                if not isinstance(ngtype, self.NodeGroupType):
+                    raise JelasticObjectException(
+                        f"Links' values must be of type NodeGroupType ({ngtype})"
+                    )
+                # Find the correct node_group value ("storage" or "sqldb") in the parent's
+                node_group = next(
+                    (
+                        ng.nodeGroup.value
+                        for ng in self._parent.nodeGroups.values()
+                        if ng.nodeGroup == ngtype
+                    ),
+                )
+                topology["links"].append(f"{node_group}:{key}")
+        return topology
+
     def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
         """
         Construct/Update our object from the structure
@@ -233,12 +300,36 @@ class JelasticNodeGroup(_JelasticObject):
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
-    def __init__(self, *, parent, node_group_from_env: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        *,
+        parent: "JelasticEnvironment",
+        node_group_from_env: Dict[str, Any] = None,
+        nodeGroup: NodeGroupType = None,
+        nodeType: "JelasticNode.NodeType" = None,
+    ) -> None:
         """
         Construct a JelasticNodeGroup from the outer data
         """
         super().__init__()
-        self._update_from_dict(parent=parent, node_group_from_env=node_group_from_env)
+        if node_group_from_env:
+            self._update_from_dict(
+                parent=parent, node_group_from_env=node_group_from_env
+            )
+        elif nodeGroup and nodeType:
+            # Construct a node Group out of the blue
+            self._parent = parent
+            self._nodeGroup = nodeGroup
+            self._envName = self._parent.envName
+            # Instantiate the rest empty, or default
+            self._displayName = ""
+            self._isSLBAccessEnabled = False
+            # Instantiate with one node
+            from .node import JelasticNode
+
+            self.nodes = [JelasticNode(node_group=self, nodeType=nodeType)]
+        else:
+            raise JelasticObjectException("Could not instantiate nodeGroup correctly")
 
     def refresh_from_api(self) -> None:
         """

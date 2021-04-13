@@ -22,6 +22,9 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains
         "status": status,
         "extdomains": extdomains,
         "nodeGroups": get_standard_node_groups(),
+        "hardwareNodeGroup": "a_provider_specific_string",
+        "sslstate": True,
+        "ishaenabled": False,
     }
 
 

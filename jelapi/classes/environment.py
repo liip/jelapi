@@ -5,7 +5,13 @@ from typing import Any, Dict, List, Optional
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
-from .jelasticobject import _JelasticObject, _JelAttrDict, _JelAttrList, _JelAttrStr
+from .jelasticobject import (
+    _JelasticObject,
+    _JelAttrBool,
+    _JelAttrDict,
+    _JelAttrList,
+    _JelAttrStr,
+)
 from .node import JelasticNode
 from .nodegroup import JelasticNodeGroup
 
@@ -39,6 +45,9 @@ class JelasticEnvironment(_JelasticObject):
     domain = _JelAttrStr(read_only=True)
     extdomains = _JelAttrList()
     nodeGroups = _JelAttrDict(checked_for_differences=False)
+    ishaneabled = _JelAttrBool(read_only=True)
+    hardwareNodeGroup = _JelAttrStr(read_only=True)
+    sslstate = _JelAttrBool(read_only=True)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -94,6 +103,9 @@ class JelasticEnvironment(_JelasticObject):
         self._shortdomain = self._env["shortdomain"]
         self._envName = self._env["envName"]
         self._domain = self._env["domain"]
+        self._hardwareNodeGroup = self._env["hardwareNodeGroup"]
+        self._sslstate = self._env["sslstate"]
+        self._ishaneabled = self._env["ishaenabled"]
 
         # Read-write attributes
         # displayName is sometimes not-present, do not die
@@ -240,6 +252,48 @@ class JelasticEnvironment(_JelasticObject):
                     f"{self.__class__.__name__}: {self.status} not supported"
                 )
 
+    def get_topology(self) -> Dict[str, Any]:
+        """
+        Return the "Environment" topology, as consumed by ChangeTopology
+        See https://docs.jelastic.com/api/5.9.8/public/#!/api/environment.Control-method-ChangeTopology
+        """
+        return {
+            "displayName": self.displayName,
+            "ishaenabled": self.ishaneabled,
+            "region": self.hardwareNodeGroup,
+            "shortdomain": self.shortdomain,
+            "sslstate": self.sslstate,
+        }
+        # Missing keys:
+        # "engine": "string",
+
+    def _save_nodeGroups(self):
+        """
+        Save the nodeGroups, eventually update the topology first if needed.
+        """
+        if self._from_api["nodeGroups"] != self.nodeGroups:
+            # We need to force the API to match what we want.
+            # First, no wipeout of nodeGroups
+            if len(self.nodeGroups) == 0:
+                raise JelasticObjectException("Wipeout of nodeGroups not allowed")
+
+            self.api._(
+                "Environment.Control.ChangeTopology",
+                envName=self.envName,
+                env=jsondumps(self.get_topology()),
+                nodes=jsondumps([ng.get_topology() for ng in self.nodeGroups.values()]),
+            )
+            # Consider some stuff as saved to API
+            for ng in self.nodeGroups.values():
+                ng.copy_self_as_from_api()
+                for n in ng.nodes:
+                    n.copy_self_as_from_api("fixedCloudlets")
+                    n.copy_self_as_from_api("flexibleCloudlets")
+
+        for ng in self.nodeGroups.values():
+            ng.save()
+        self._from_api["nodeGroups"] = self.nodeGroups
+
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
@@ -248,8 +302,7 @@ class JelasticEnvironment(_JelasticObject):
         self._save_envGroups()
         self._save_extDomains()
         self._set_running_status(self.status)
-        for ng in self.nodeGroups.values():
-            ng.save()
+        self._save_nodeGroups()
 
     def node_by_node_group(self, node_group: str) -> JelasticNode:
         """

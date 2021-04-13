@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import Any, Dict, List
 
 from ..exceptions import JelasticObjectException
@@ -6,6 +7,7 @@ from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
     _JelAttrBool,
+    _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
     _JelAttrList,
@@ -19,11 +21,24 @@ class JelasticNode(_JelasticObject):
     Represents a Jelastic Node
     """
 
+    class NodeType(Enum):
+        """
+        Available Node Types
+        See https://docs.cloudscripting.com/creating-manifest/selecting-containers/#supported-stacks
+        """
+
+        DOCKER = "docker"
+        STORAGE = "storage"
+
     id = _JelAttrInt(read_only=True)
     envName = _JelAttrStr(read_only=True)
     intIP = _JelAttrIPv4(read_only=True)
     url = _JelAttrStr(read_only=True)
     nodeGroup = _JelAttr(read_only=True)
+
+    # Not a real attribute, at least not synced to API
+    docker_registry: Dict
+    docker_image: str
 
     # TODO: make the ones that make sense as RW attributes
     diskIoLimit = _JelAttrInt(read_only=True)
@@ -43,7 +58,7 @@ class JelasticNode(_JelasticObject):
     maxchanks = _JelAttrInt(read_only=True)
     messages = _JelAttrList(read_only=True)
     name = _JelAttrStr(read_only=True)
-    nodeType = _JelAttrStr(read_only=True)
+    nodeType = _JelAttr(read_only=True)
     nodemission = _JelAttrStr(read_only=True)
     osType = _JelAttrStr(read_only=True)
     packages = _JelAttrList(read_only=True)
@@ -74,6 +89,12 @@ class JelasticNode(_JelasticObject):
         # Read-only attributes
         self._envName = self._nodeGroup._parent.envName
 
+        self._nodeType = next(
+            (nt for nt in self.NodeType if nt.value == self._node["nodeType"]), None
+        )
+        if not self.nodeType:
+            raise JelasticObjectException(f"nodeType unknown: {self._node['nodeType']}")
+
         for attr in [
             "id",
             "intIP",
@@ -95,7 +116,6 @@ class JelasticNode(_JelasticObject):
             "maxchanks",
             "messages",
             "name",
-            "nodeType",
             "nodemission",
             "osType",
             "packages",
@@ -111,8 +131,6 @@ class JelasticNode(_JelasticObject):
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:
             setattr(self, attr, self._node[attr])
-        # By default, do not allow flexibleCloudlets' reduction
-        self.allowFlexibleCloudletsReduction = False
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -121,13 +139,38 @@ class JelasticNode(_JelasticObject):
         self,
         *,
         node_group: "JelasticNodeGroup",
-        node_from_env: Dict[str, Any],
+        node_from_env: Dict[str, Any] = None,
+        nodeType: NodeType = None,
     ) -> None:
         """
-        Construct a JelasticNode from the outer data
+        Construct a JelasticNode from the outer data, or from
         """
         super().__init__()
-        self._update_from_dict(node_group=node_group, node_from_env=node_from_env)
+        # By default, do not allow flexibleCloudlets' reduction
+        self.allowFlexibleCloudletsReduction = False
+        # Set initials
+        self.fixedCloudlets = 1
+        self.flexibleCloudlets = 2
+
+        if node_from_env:
+            self._update_from_dict(node_group=node_group, node_from_env=node_from_env)
+        elif nodeType:
+            self._nodeType = nodeType
+            self._nodemission = nodeType.value
+        else:
+            raise JelasticObjectException("Couldn't instantiate node")
+
+    @property
+    def links(self) -> List[Dict[str, Any]]:
+        """
+        Expose the inwards docker links, as they came from the API, for consumption from nodeGroup
+        """
+        try:
+            return [
+                l for l in self._node["customitem"]["dockerLinks"] if l["type"] == "IN"
+            ]
+        except (KeyError, AttributeError):
+            return []
 
     def refresh_from_api(self) -> None:
         """
@@ -139,7 +182,7 @@ class JelasticNode(_JelasticObject):
         return f"JelasticNode id:{self.id}"
 
     def _set_cloudlets(self):
-        if (
+        if not self._from_api or (
             self._from_api["fixedCloudlets"] != self.fixedCloudlets
             or self._from_api["flexibleCloudlets"] != self.flexibleCloudlets
         ):

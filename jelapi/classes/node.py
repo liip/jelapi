@@ -158,7 +158,7 @@ class JelasticNode(_JelasticObject):
             self._nodeType = nodeType
             self._nodemission = nodeType.value
         else:
-            raise JelasticObjectException("Couldn't instantiate node")
+            raise TypeError("Node instantiation needs either node_from_env or nodeType")
 
     @property
     def links(self) -> List[Dict[str, Any]]:

@@ -260,7 +260,7 @@ class JelasticNodeGroup(_JelasticObject):
             topology["links"] = []
             for key, ngtype in self.links.items():
                 if not isinstance(ngtype, self.NodeGroupType):
-                    raise JelasticObjectException(
+                    raise TypeError(
                         f"Links' values must be of type NodeGroupType ({ngtype})"
                     )
                 # Find the correct node_group value ("storage" or "sqldb") in the parent's
@@ -339,7 +339,9 @@ class JelasticNodeGroup(_JelasticObject):
 
             self.nodes = [JelasticNode(node_group=self, nodeType=nodeType)]
         else:
-            raise JelasticObjectException("Could not instantiate nodeGroup correctly")
+            raise TypeError(
+                "NodeGroup instantiation needs either node_group_from_env or (nodeGroup, nodeType)"
+            )
 
     def refresh_from_api(self) -> None:
         """

@@ -33,8 +33,8 @@ def test_JelasticNodeGroup_with_missing_data():
     for musthavekey in ["name"]:
         nodegroup = get_standard_node_group()
         del nodegroup[musthavekey]
-        with pytest.raises(KeyError):
-            # missing id Dies
+        with pytest.raises(TypeError):
+            # missing name (alone) dies
             JelasticNodeGroup(parent=jelenv, node_group_from_env=nodegroup)
 
 

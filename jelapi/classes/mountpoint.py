@@ -130,7 +130,7 @@ class JelasticMountPoint(_JelasticVolume):
         """
         # TODO
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         String representation
         """

@@ -4,10 +4,20 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
+from jelapi.classes import (
+    JelasticEnvironment,
+    JelasticMountPoint,
+    JelasticNode,
+    JelasticNodeGroup,
+)
 from jelapi.exceptions import JelasticObjectException
 
-from .utils import get_standard_env, get_standard_node_group
+from .utils import (
+    get_standard_env,
+    get_standard_mount_point,
+    get_standard_node,
+    get_standard_node_group,
+)
 
 jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
 
@@ -16,7 +26,15 @@ def test_JelasticNodeGroup_with_enough_data():
     """
     JelasticNodeGroup can be instantiated
     """
-    JelasticNodeGroup(parent=jelenv, node_group_from_env=get_standard_node_group())
+    # From API
+    j1 = JelasticNodeGroup(parent=jelenv, node_group_from_env=get_standard_node_group())
+    assert j1.is_from_api
+    j2 = JelasticNodeGroup(
+        parent=jelenv,
+        nodeGroup=JelasticNodeGroup.NodeGroupType.SQL_DATABASE,
+        nodeType=JelasticNode.NodeType.DOCKER,
+    )
+    assert not j2.is_from_api
 
 
 def test_JelasticNodeGroup_with_missing_data():
@@ -231,3 +249,97 @@ def test_JelasticNodeGroup_read_file():
     body = node_group.read_file("/tmp/test")
     jelapic()._.assert_called_once()
     assert body == "Text content"
+
+
+def test_JelasticNodeGroup_get_mountPoints():
+    """
+    We can get the list of mountPoints
+    """
+    node_group = JelasticNodeGroup(
+        parent=jelenv, node_group_from_env=get_standard_node_group()
+    )
+    assert not hasattr(node_group, "_mountPoints")
+    jelapic()._ = Mock(
+        return_value={"array": []},
+    )
+    assert node_group.mountPoints == []
+    jelapic()._.assert_called_once()
+    # Now assume it changed on the API
+    jelapic()._ = Mock(
+        return_value={"array": [get_standard_mount_point()]},
+    )
+    # It did not change, and the API was not called
+    assert node_group.mountPoints == []
+    jelapic()._.assert_not_called()
+
+    # There's no way to force-refresh, currently:
+    with pytest.raises(TypeError):
+        node_group._mountPoints = None
+    node_group._mountPoints = []
+    # It's still 0
+    assert len(node_group.mountPoints) == 0
+    jelapic()._.assert_not_called()
+
+
+def test_JelasticNodeGroup_add_remove_mountPoints():
+    """
+    We can add mountPoints
+    """
+    # Instantiate a somewhat realistic environment
+    cp_node_group = JelasticNodeGroup(
+        parent=jelenv, node_group_from_env=get_standard_node_group()
+    )
+    cp_node_group._nodes = [
+        JelasticNode(node_group=cp_node_group, node_from_env=get_standard_node())
+    ]
+    storage_node_group = JelasticNodeGroup(
+        parent=jelenv, node_group_from_env=get_standard_node_group()
+    )
+    storage_node_group._nodes = [
+        JelasticNode(node_group=storage_node_group, node_from_env=get_standard_node())
+    ]
+    jelenv._nodeGroups = {"cp": cp_node_group, "storage": storage_node_group}
+
+    jelapic()._ = Mock(
+        return_value={"array": []},
+    )
+    cp_node_group.mountPoints.append(
+        JelasticMountPoint(
+            node_group=cp_node_group,
+            name="test",
+            path="/tmp/test",
+            sourcePath="/srv",
+            sourceNode=storage_node_group.nodes[0],
+        )
+    )
+    # As we fetched, to append
+    jelapic()._.assert_called_once()
+
+    assert len(cp_node_group.mountPoints) == 1
+
+    jelapic()._.reset_mock()
+    cp_node_group.save()
+    jelapic()._.assert_called_once()
+
+    # Add another one, with the same path
+    cp_node_group.mountPoints.append(
+        JelasticMountPoint(
+            node_group=cp_node_group,
+            name="test2",
+            path="/tmp/test",
+            sourcePath="/srv/test2",
+            sourceNode=storage_node_group.nodes[0],
+        )
+    )
+    with pytest.raises(JelasticObjectException):
+        cp_node_group.save()
+
+    # Remove this one, sorry.
+    del cp_node_group.mountPoints[1]
+    # Remove the first one too
+    del cp_node_group.mountPoints[0]
+
+    # So the save will also remove the first one
+    jelapic()._.reset_mock()
+    cp_node_group.save()
+    jelapic()._.assert_called_once()

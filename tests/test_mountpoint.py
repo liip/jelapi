@@ -46,6 +46,7 @@ def test_JelasticMountPoint_init_from_api():
         ),
     )
     assert jmp.is_from_api
+    assert str(jmp) != ""
 
 
 def test_JelasticMountPoint_init_as_new():

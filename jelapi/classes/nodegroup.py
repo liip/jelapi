@@ -12,7 +12,7 @@ from .jelasticobject import (
     _JelAttrStr,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .environment import JelasticEnvironment
     from .mountpoint import JelasticMountPoint
     from .node import JelasticNode
@@ -386,7 +386,7 @@ class JelasticNodeGroup(_JelasticObject):
         self._save_container_volumes()
         self._save_mount_points()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         String representation
         """

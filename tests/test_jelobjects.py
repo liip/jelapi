@@ -1,6 +1,6 @@
-import pytest
-
 from datetime import datetime
+
+import pytest
 
 from jelapi.classes.jelasticobject import (
     _JelasticAttribute,

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class _JelasticAttribute:
@@ -97,7 +97,7 @@ class _JelasticObject(ABC):
     _from_api                dict of attributes as last refreshed from API
     """
 
-    _from_api: Dict[str, Any] = None
+    _from_api: Optional[Dict[str, Any]] = None
     _logger: logging.Logger
 
     def __init__(self, *args, **kwargs) -> None:

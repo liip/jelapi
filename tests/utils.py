@@ -64,3 +64,12 @@ def get_standard_node(fixed_cloudlets: int = 1, flexible_cloudlets: int = 1):
         "type": "NATIVE",
         "version": "docker-tag",
     }
+
+
+def get_standard_mount_point(source_node_id: int = 1):
+    return {
+        "name": "mount point name",
+        "path": "/tmp/test",
+        "sourcePath": "/tmp/sourcePath",
+        "sourceNodeId": source_node_id,
+    }

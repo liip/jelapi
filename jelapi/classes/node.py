@@ -7,7 +7,6 @@ from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
     _JelAttrBool,
-    _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
     _JelAttrList,
@@ -167,7 +166,7 @@ class JelasticNode(_JelasticObject):
         """
         try:
             return [
-                l for l in self._node["customitem"]["dockerLinks"] if l["type"] == "IN"
+                n for n in self._node["customitem"]["dockerLinks"] if n["type"] == "IN"
             ]
         except (KeyError, AttributeError):
             return []

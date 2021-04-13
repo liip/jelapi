@@ -75,6 +75,10 @@ class JelasticMountPoint(_JelasticVolume):
             self._sourcePath = sourcePath
             assert not self.is_from_api
             assert self.differs_from_api()
+        else:
+            raise TypeError(
+                "MountPoint instantiation needs either mount_point_from_api, or (name, path, sourceNode, sourcePath)"
+            )
 
     def add_to_api(self) -> None:
         """

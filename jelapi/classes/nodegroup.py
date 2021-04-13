@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from ..exceptions import JelasticObjectException
 from .jelasticobject import _JelasticAttribute as _JelAttr
@@ -11,6 +11,11 @@ from .jelasticobject import (
     _JelAttrList,
     _JelAttrStr,
 )
+
+if TYPE_CHECKING:
+    from .environment import JelasticEnvironment
+    from .mountpoint import JelasticMountPoint
+    from .node import JelasticNode
 
 
 class JelasticNodeGroup(_JelasticObject):

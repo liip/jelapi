@@ -203,7 +203,12 @@ class JelasticNode(_JelasticObject):
         """
         Access the lazy-loaded vars from the nodeGroup, always
         """
-        return self._nodeGroup.envVars
+        try:
+            return self._nodeGroup.envVars
+        except AttributeError:
+            raise JelasticObjectException(
+                "Cannot fetch envVars from node without nodeGroup (not from API ?)"
+            )
 
     def save_to_jelastic(self):
         """

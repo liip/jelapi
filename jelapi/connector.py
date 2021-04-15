@@ -12,6 +12,7 @@ class JelasticAPIConnector:
         Get all needed data to connect to a Jelastic API
         """
         self.apiurl = apiurl
+        self.apitoken = apitoken
         self.apidata = {"session": apitoken}
         self.logger = logging.getLogger(self.__class__.__name__)
         # httpx client. Default to no timeouts, as the Jelastic API is _synchronous_.

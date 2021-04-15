@@ -31,6 +31,8 @@ def api_connector():
     if (
         isinstance(_api_connector, JelasticAPIConnector)
         and _api_connector.is_functional()
+        and _api_connector.apiurl == api_url
+        and _api_connector.apitoken == api_token
     ):
         # Only return the global one if it is somewhat functional
         return _api_connector

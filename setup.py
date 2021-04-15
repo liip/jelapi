@@ -5,7 +5,12 @@ from setuptools import find_packages, setup
 __version__ = "0.1.0rc6"
 
 install_requires = ["httpx[http2]"]
-test_requires = ["respx", "pytest-cov"]
+test_requires = [
+    "respx",
+    "pytest-cov",
+    "factory_boy",
+    "faker_enum",
+]
 
 with open("README.md", "r") as fh:
     long_description = fh.read()

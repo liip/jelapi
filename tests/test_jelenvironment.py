@@ -5,6 +5,7 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
+from jelapi.factories import JelasticEnvironmentFactory
 
 from .utils import get_standard_env, get_standard_node, get_standard_node_groups
 
@@ -580,3 +581,8 @@ def test_JelasticEnvironment_sumstats():
 
     # Fetch 8 hours'
     jelenv.get_sumstats(8 * 60 * 60)
+
+
+def test_JelasticEnvironmentFactory():
+    jelenv = JelasticEnvironmentFactory()
+    assert len(jelenv.nodeGroups) == 3

@@ -6,6 +6,7 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
+from jelapi.factories import JelasticNodeFactory
 
 from .utils import get_standard_env, get_standard_node, get_standard_node_group
 
@@ -236,3 +237,11 @@ def test_JelasticNode_read_file():
     body = node.read_file("/tmp/test")
     jelapic()._.assert_called_once()
     assert body == "Text content"
+
+
+def test_JelasticNode_factory():
+    node = JelasticNodeFactory()
+    assert not node.is_from_api
+    with pytest.raises(JelasticObjectException):
+        # envVars cannot be fetched if not from API
+        node.envVars

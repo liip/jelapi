@@ -216,12 +216,6 @@ class _JelasticObject(ABC):
         DO NOT update the object. That'd done in refresh_from_api
         """
 
-    @abstractmethod
-    def refresh_from_api(self) -> None:
-        """
-        Refresh current object from the API
-        """
-
     def save(self) -> None:
         """
         Save the changes staged in attributes
@@ -230,9 +224,11 @@ class _JelasticObject(ABC):
             # Implements the saving of the changes to Jelastic
             self._tracelog("save() -> differs_from_api() -> save_to_jelastic()")
             self.save_to_jelastic()
-            # Fetches, to verify changes were proceeded with correctly
-            self._tracelog("save() -> differs_from_api() -> refresh_from_api()")
-            self.refresh_from_api()
+            if hasattr(self, "refresh_from_api"):
+                # Fetches, to verify changes were proceeded with correctly
+                self._tracelog("save() -> differs_from_api() -> refresh_from_api()")
+                self.refresh_from_api()
+
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
         assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."
         assert not self.differs_from_api(), assertmsg

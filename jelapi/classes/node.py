@@ -171,12 +171,6 @@ class JelasticNode(_JelasticObject):
         except (KeyError, AttributeError):
             return []
 
-    def refresh_from_api(self) -> None:
-        """
-        JelasticNodes cannot be refreshed by themselves; refresh the parent JelasticEnvironment
-        """
-        pass
-
     def __str__(self) -> str:
         return f"JelasticNode id:{self.id}"
 

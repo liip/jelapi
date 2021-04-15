@@ -348,12 +348,6 @@ class JelasticNodeGroup(_JelasticObject):
                 "NodeGroup instantiation needs either node_group_from_env or (nodeGroup, nodeType)"
             )
 
-    def refresh_from_api(self) -> None:
-        """
-        JelasticNodeGroups should be refreshed by themselves
-        """
-        # TODO
-
     def _apply_data(self):
         """
         Use "ApplyData" to save all the data we _can_ save

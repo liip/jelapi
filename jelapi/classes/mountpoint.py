@@ -118,12 +118,6 @@ class JelasticMountPoint(_JelasticVolume):
         self.copy_self_as_from_api()
         assert not self.differs_from_api()
 
-    def refresh_from_api(self) -> None:
-        """
-        JelasticMountPoints could be refreshed by themselves
-        """
-        # TODO
-
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic

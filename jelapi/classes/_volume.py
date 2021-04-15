@@ -40,12 +40,6 @@ class _JelasticVolume(_JelasticObject):
         self.is_new = True
         assert self.differs_from_api
 
-    def refresh_from_api(self) -> None:
-        """
-        JelasticMountPoints could be refreshed by themselves
-        """
-        # TODO
-
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic

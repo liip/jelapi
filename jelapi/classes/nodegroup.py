@@ -142,8 +142,8 @@ class JelasticNodeGroup(_JelasticObject):
             self._mountPoints = []
             for mpdict in response["array"]:
                 mp = JelasticMountPoint()
-                mp.update_from_env_dict(mpdict)
                 mp.attach_to_node_group(self)
+                mp.update_from_env_dict(mpdict)
 
             self.copy_self_as_from_api("_mountPoints")
         return self._mountPoints

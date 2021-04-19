@@ -298,16 +298,16 @@ def test_JelasticNodeGroup_get_mountPoints():
 
     assert not hasattr(node_group, "_mountPoints")
     jelapic()._ = Mock(
-        return_value={"array": []},
+        return_value={"array": [get_standard_mount_point()]},
     )
-    assert node_group.mountPoints == []
+    assert len(node_group.mountPoints) == 1
     jelapic()._.assert_called_once()
     # Now assume it changed on the API
     jelapic()._ = Mock(
-        return_value={"array": [get_standard_mount_point()]},
+        return_value={"array": []},
     )
     # It did not change, and the API was not called
-    assert node_group.mountPoints == []
+    assert node_group.mountPoints != []
     jelapic()._.assert_not_called()
 
     # There's no way to force-refresh, currently:

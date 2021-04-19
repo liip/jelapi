@@ -198,10 +198,7 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API_twice(
         return_value={"env": get_standard_env(), "envGroups": []},
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironmentFactory()
     jelenv.displayName = "different displayName"
     jelenv.save()
     jelapic()._.assert_called()
@@ -217,7 +214,10 @@ def test_JelasticEnvironment_differs_from_api_if_envGroups_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=["A", "B"])
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_env_groups_from_info(["A", "B"])
+
     jelenv.envGroups.append("C")
     assert jelenv.differs_from_api()
     jelenv.envGroups = ["A", "B"]

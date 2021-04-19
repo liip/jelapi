@@ -5,15 +5,14 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode
+from jelapi.classes import JelasticNode
 from jelapi.exceptions import JelasticObjectException
 from jelapi.factories import (
     JelasticEnvironmentFactory,
     JelasticNodeFactory,
-    JelasticNodeGroupFactory,
 )
 
-from .utils import get_standard_env, get_standard_node
+from .utils import get_standard_node
 
 jelenv = JelasticEnvironmentFactory()
 node_group = list(jelenv.nodeGroups.values())[0]
@@ -98,7 +97,8 @@ def test_JelasticNode_immutable_data():
     Doesn't differ from API at build
     """
     node = JelasticNodeFactory()
-    assert str(node) == "JelasticNode id:1"
+    node._id = 3
+    assert str(node) == "JelasticNode id:3"
 
     with pytest.raises(AttributeError):
         node.id = 4

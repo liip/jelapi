@@ -30,9 +30,11 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains
     }
 
 
-def get_standard_node(fixed_cloudlets: int = 1, flexible_cloudlets: int = 1):
+def get_standard_node(
+    id: int = 987, fixed_cloudlets: int = 1, flexible_cloudlets: int = 1
+):
     return {
-        "id": 1,
+        "id": id,
         "fixedCloudlets": fixed_cloudlets,
         "flexibleCloudlets": flexible_cloudlets,
         "intIP": "192.0.2.1",

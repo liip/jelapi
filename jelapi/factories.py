@@ -61,6 +61,14 @@ class JelasticEnvironmentFactory(_JelasticEnvironmentFactory):
                 elif key == "storage":
                     n._nodeType = classes.JelasticNode.NodeType.STORAGE
 
+                # Set different Ids
+                if key == "cp":
+                    n._id = 110
+                if key == "sqldb":
+                    n._id = 120
+                if key == "storage":
+                    n._id = 130
+
             ngs[key] = ng
 
         instance.nodeGroups = ngs
@@ -91,11 +99,11 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
 
         # Set different Ids
         if instance.nodeGroupType.value == "cp":
-            node._id = 11
+            node._id = 110
         if instance.nodeGroupType.value == "sqldb":
-            node._id = 12
+            node._id = 120
         if instance.nodeGroupType.value == "storage":
-            node._id = 13
+            node._id = 130
 
         node.attach_to_node_group(instance)
         instance.copy_self_as_from_api("nodes")

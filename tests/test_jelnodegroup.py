@@ -5,12 +5,11 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticMountPoint, JelasticNodeGroup
+from jelapi.classes import JelasticMountPoint, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
 from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
 from .utils import (
-    get_standard_env,
     get_standard_mount_point,
     get_standard_node,
     get_standard_node_group,
@@ -277,12 +276,18 @@ def test_JelasticNodeGroup_get_mountPoints():
     """
     We can get the list of mountPoints
     """
-    node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(JelasticEnvironmentFactory())
+    jelenv = JelasticEnvironmentFactory()
+    node_group = jelenv.nodeGroups["cp"]
 
     assert not hasattr(node_group, "_mountPoints")
     jelapic()._ = Mock(
-        return_value={"array": [get_standard_mount_point()]},
+        return_value={
+            "array": [
+                get_standard_mount_point(
+                    source_node_id=jelenv.nodeGroups["storage"].nodes[0].id
+                )
+            ]
+        },
     )
     assert len(node_group.mountPoints) == 1
     jelapic()._.assert_called_once()
@@ -409,7 +414,7 @@ def test_JelasticNodeGroup_links_non_empty():
     sqldbng = jelenv.nodeGroups["sqldb"]
 
     ndict = get_standard_node()
-    ndict["id"] = jelenv.nodeGroups["cp"].nodes[0].id
+    ndict["id"] = cpng.nodes[0].id
 
     ndict["customitem"] = {
         "dockerLinks": [
@@ -494,7 +499,6 @@ def test_JelasticNodeGroup_topology():
     """
     jelenv = JelasticEnvironmentFactory()
     cp_node_group = jelenv.nodeGroups["cp"]
-    storage_node_group = jelenv.nodeGroups["storage"]
 
     cp_node_group.links["SQLDB"] = JelasticNodeGroup.NodeGroupType.SQL_DATABASE
     cp_node_group.nodes[0].docker_registry = {"url": "https://docker.example.com/"}

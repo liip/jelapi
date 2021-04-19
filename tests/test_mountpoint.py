@@ -4,13 +4,11 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes.environment import JelasticEnvironment
 from jelapi.classes.mountpoint import JelasticMountPoint
-from jelapi.classes.nodegroup import JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
+from jelapi.factories import JelasticEnvironmentFactory
 
-from .utils import get_standard_env, get_standard_mount_point
+from .utils import get_standard_mount_point
 
 # Create default environment
 jelenv = JelasticEnvironmentFactory()

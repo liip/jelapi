@@ -1,3 +1,4 @@
+import warnings
 from copy import deepcopy
 from unittest.mock import Mock
 
@@ -7,62 +8,75 @@ from jelapi import api_connector as jelapic
 from jelapi.classes import (
     JelasticEnvironment,
     JelasticMountPoint,
-    JelasticNode,
     JelasticNodeGroup,
 )
 from jelapi.exceptions import JelasticObjectException
+from jelapi.factories import JelasticNodeGroupFactory
 
 from .utils import (
     get_standard_env,
     get_standard_mount_point,
-    get_standard_node,
     get_standard_node_group,
 )
 
 jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
 
 
+def test_JelasticNodeGroup_simple_load():
+    """
+    JelasticNodeGroup can be instantiated as-is
+    """
+    JelasticNodeGroup()
+
+
 def test_JelasticNodeGroup_with_enough_data():
     """
-    JelasticNodeGroup can be instantiated
+    JelasticNodeGroup can be instantiated, deprecated format
     """
-    # From API
-    j1 = JelasticNodeGroup(parent=jelenv, node_group_from_env=get_standard_node_group())
-    assert j1.is_from_api
-    j2 = JelasticNodeGroup(
-        parent=jelenv,
-        nodeGroup=JelasticNodeGroup.NodeGroupType.SQL_DATABASE,
-        nodeType=JelasticNode.NodeType.DOCKER,
-    )
-    assert not j2.is_from_api
+    with warnings.catch_warnings(record=True) as warns:
+        # From API
+        j1 = JelasticNodeGroup(
+            parent=jelenv, node_group_from_env=get_standard_node_group()
+        )
+        assert j1.is_from_api
+        assert len(warns) == 2
+
+    with warnings.catch_warnings(record=True) as warns:
+        j2 = JelasticNodeGroup(
+            parent=jelenv,
+            nodeGroup=JelasticNodeGroup.NodeGroupType.SQL_DATABASE,
+        )
+        assert not j2.is_from_api
+        assert len(warns) == 1
 
 
 def test_JelasticNodeGroup_with_missing_data():
     """
     JelasticNodeGroup cannot be instantiated with missing attributes
     """
-    with pytest.raises(TypeError):
-        # parent is mandatory
-        JelasticNode(node_group_from_env=get_standard_node_group())
-    with pytest.raises(TypeError):
-        # node_group_from_env is also mandatory
-        JelasticNode(parent=jelenv)
-
     for musthavekey in ["name"]:
         nodegroup = get_standard_node_group()
         del nodegroup[musthavekey]
-        with pytest.raises(TypeError):
+        ng = JelasticNodeGroup()
+        with pytest.raises(KeyError):
             # missing name (alone) dies
-            JelasticNodeGroup(parent=jelenv, node_group_from_env=nodegroup)
+            ng.update_from_env_dict(nodegroup)
+
+
+def test_JelasticNodeGroup_factory():
+    """
+    Factory works
+    """
+    node_group = JelasticNodeGroupFactory()
+    assert len(node_group.nodes) > 0
+    assert node_group.is_from_api
 
 
 def test_JelasticNodeGroup_immutable_data():
     """
     Doesn't differ from API at build
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
     assert str(node_group) == "JelasticNodeGroup cp"
 
     with pytest.raises(AttributeError):
@@ -77,9 +91,8 @@ def test_JelasticNodeGroup_envVars_refreshes_from_API():
     """
     Getting the envVars gets us an API call
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
     )
@@ -94,9 +107,8 @@ def test_JelasticNodeGroup_envVars_raises_if_set_without_fetch():
     """
     Saving a faked envVars without fetch will raise
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(jelenv)
     node_group._envVars = {"ID": "evil"}
     with pytest.raises(JelasticObjectException):
         node_group.save()
@@ -106,9 +118,8 @@ def test_JelasticNodeGroup_envVars_raises_if_set_empty():
     """
     Saving a faked envVars without fetch will raise
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
     )
@@ -130,9 +141,8 @@ def test_JelasticNodeGroup_envVars_raises_if_env_is_not_running():
     for status in JelStatus:
         jelenv_local = deepcopy(jelenv)
         jelenv_local.status = status
-        node_group = JelasticNodeGroup(
-            parent=jelenv_local, node_group_from_env=get_standard_node_group()
-        )
+        node_group = JelasticNodeGroupFactory()
+        node_group.set_environment(jelenv_local)
         jelapic()._ = Mock(
             return_value={"object": {"VAR": "value"}},
         )
@@ -148,9 +158,8 @@ def test_JelasticNodeGroup_envVars_raises_if_env_is_not_running():
 
 
 def test_JelasticNodeGroup_envVars_updates():
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
 
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
@@ -187,9 +196,9 @@ def test_JelasticNodeGroup_displayName_update():
     """
     Update displayName
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
+
     assert not node_group.differs_from_api()
     node_group.displayName = "A new name for a new day"
     assert node_group.differs_from_api()
@@ -204,9 +213,9 @@ def test_JelasticNodeGroup_SLB_update():
     """
     Update SLB status
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
+
     assert not node_group.differs_from_api()
     # Toggle the status
     node_group.isSLBAccessEnabled = not node_group.isSLBAccessEnabled
@@ -222,9 +231,9 @@ def test_JelasticNodeGroup_redeploy():
     """
     NodeGroups can be redeployed
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
+
     assert not node_group.differs_from_api()
     node_group.redeploy(docker_tag="latest")
 
@@ -233,9 +242,9 @@ def test_JelasticNodeGroup_read_file():
     """
     We can gather a single file in a nodegroup
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
+
     jelapic()._ = Mock(
         return_value={
             "body": "Text content",
@@ -255,9 +264,9 @@ def test_JelasticNodeGroup_get_mountPoints():
     """
     We can get the list of mountPoints
     """
-    node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
+    node_group = JelasticNodeGroupFactory()
+    node_group.set_environment(JelasticEnvironment(jelastic_env=get_standard_env()))
+
     assert not hasattr(node_group, "_mountPoints")
     jelapic()._ = Mock(
         return_value={"array": []},
@@ -286,19 +295,13 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
     We can add mountPoints
     """
     # Instantiate a somewhat realistic environment
-    cp_node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
-    cp_node_group._nodes = [
-        JelasticNode(node_group=cp_node_group, node_from_env=get_standard_node())
-    ]
-    storage_node_group = JelasticNodeGroup(
-        parent=jelenv, node_group_from_env=get_standard_node_group()
-    )
-    storage_node_group._nodes = [
-        JelasticNode(node_group=storage_node_group, node_from_env=get_standard_node())
-    ]
+    cp_node_group = JelasticNodeGroupFactory()
+    storage_node_group = JelasticNodeGroupFactory()
+
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
     jelenv._nodeGroups = {"cp": cp_node_group, "storage": storage_node_group}
+    cp_node_group.set_environment(jelenv)
+    storage_node_group.set_environment(jelenv)
 
     jelapic()._ = Mock(
         return_value={"array": []},

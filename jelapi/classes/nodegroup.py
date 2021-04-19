@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from ..exceptions import JelasticObjectException
+from ..exceptions import JelasticObjectException, deprecation
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
@@ -68,7 +68,7 @@ class JelasticNodeGroup(_JelasticObject):
 
         JelStatus = JelasticEnvironment.Status
 
-        if self._parent.status not in [
+        if hasattr(self, "_parent") and self._parent.status not in [
             JelStatus.RUNNING,
             JelStatus.CREATING,
             JelStatus.CLONING,
@@ -77,6 +77,8 @@ class JelasticNodeGroup(_JelasticObject):
                 "envVars cannot be gathered on environments not running"
             )
         if not hasattr(self, "_envVars"):
+            self.raise_unless_can_call_api()
+
             response = self.api._(
                 "Environment.Control.GetContainerEnvVarsByGroup",
                 envName=self.envName,
@@ -101,6 +103,7 @@ class JelasticNodeGroup(_JelasticObject):
                     "envVars cannot be set to empty (no wipe out)"
                 )
             if self._from_api["_envVars"] != self._envVars:
+                self.raise_unless_can_call_api()
                 self.api._(
                     "Environment.Control.SetContainerEnvVarsByGroup",
                     envName=self.envName,
@@ -114,6 +117,7 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Lazy load mountPoints when they're accessed
         """
+        self.raise_unless_can_call_api()
         from .mountpoint import JelasticMountPoint
 
         if not hasattr(self, "_mountPoints"):
@@ -178,6 +182,7 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Lazy load containerVolumes when they're accessed
         """
+        self.raise_unless_can_call_api()
 
         if not hasattr(self, "_containerVolumes"):
             response = self.api._(
@@ -198,6 +203,8 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Verify that the container volumes have not changed, apply the changes
         """
+        self.raise_unless_can_call_api()
+
         # Only check them if they were accessed
         if hasattr(self, "_containerVolumes"):
             if len(set(self.containerVolumes)) != len(self.containerVolumes):
@@ -288,15 +295,21 @@ class JelasticNodeGroup(_JelasticObject):
             return False
         return self._from_api["_links"] != self._links
 
-    def _update_from_dict(self, parent, node_group_from_env: Dict[str, Any]) -> None:
+    def set_environment(self, environment: "JelasticEnvironment") -> None:
+        """
+        Set the parent environment
+        """
+        self._parent = environment
+
+        # Read-only attributes
+        self._envName = self._parent.envName
+
+    def update_from_env_dict(self, node_group_from_env: Dict[str, Any]) -> None:
         """
         Construct/Update our object from the structure
         """
         # Allow exploration of the returned object, but don't act on it.
         self._node_group = node_group_from_env
-        self._parent = parent
-        # Read-only attributes
-        self._envName = self._parent.envName
 
         self._nodeGroup = next(
             (ng for ng in self.NodeGroupType if ng.value == self._node_group["name"]),
@@ -315,45 +328,55 @@ class JelasticNodeGroup(_JelasticObject):
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
+    def raise_unless_can_call_api(self):
+        """
+        Check if we can update to API, or raise
+        """
+        if not hasattr(self, "envName") or not hasattr(self, "nodeGroup"):
+            raise JelasticObjectException(
+                "Cannot update to API, use set_environment() before saving!"
+            )
+
     def __init__(
         self,
         *,
-        parent: "JelasticEnvironment",
+        parent: "JelasticEnvironment" = None,
         node_group_from_env: Dict[str, Any] = None,
         nodeGroup: NodeGroupType = None,
-        nodeType: "JelasticNode.NodeType" = None,
     ) -> None:
         """
         Construct a JelasticNodeGroup from the outer data
         """
         super().__init__()
-        if node_group_from_env:
-            self._update_from_dict(
-                parent=parent, node_group_from_env=node_group_from_env
-            )
-        elif nodeGroup and nodeType:
-            # Construct a node Group out of the blue
-            self._parent = parent
-            self._nodeGroup = nodeGroup
-            self._envName = self._parent.envName
-            # Instantiate the rest empty, or default
-            self._displayName = ""
-            self._isSLBAccessEnabled = False
-            # Instantiate with one node
-            from .node import JelasticNode
 
-            node = JelasticNode(nodeType=nodeType)
-            node.set_node_group(self)
-            self.nodes = [node]
-        else:
-            raise TypeError(
-                "NodeGroup instantiation needs either node_group_from_env or (nodeGroup, nodeType)"
+        # Instantiate some empty, or default
+        self._displayName = ""
+        self._isSLBAccessEnabled = False
+
+        if nodeGroup:
+            # Construct a node Group out of the blue
+            self._nodeGroup = nodeGroup
+
+        if parent:
+            deprecation(
+                "NodeGroup.__init__(): Passing parent is deprecated; use set_environment instead",
             )
+            self.set_environment(parent)
+            assert self._parent == parent
+
+        if node_group_from_env:
+            deprecation(
+                "NodeGroup.__init__(): Passing node_group_from_env is deprecated; use update_from_env_dict instead",
+            )
+            self.update_from_env_dict(node_group_from_env=node_group_from_env)
+            assert self.is_from_api
 
     def _apply_data(self):
         """
         Use "ApplyData" to save all the data we _can_ save
         """
+        self.raise_unless_can_call_api()
+
         #  Prepare data attr for ApplyData call
         data = {}
         for attr in ["displayName", "isSLBAccessEnabled"]:
@@ -393,6 +416,8 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Read a file in a nodeGroup
         """
+        self.raise_unless_can_call_api()
+
         if not path:
             raise TypeError(f"path {path} cannot be empty")
         response = self.api._(
@@ -407,6 +432,8 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Redeploy a nodeGroup to a certain docker tag
         """
+        self.raise_unless_can_call_api()
+
         self.api._(
             "Environment.Control.RedeployContainersByGroup",
             envName=self.envName,

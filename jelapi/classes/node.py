@@ -80,7 +80,11 @@ class JelasticNode(_JelasticObject):
         self._nodeGroup = node_group
 
         # Read-only attributes
-        self._envName = self._nodeGroup._parent.envName
+        try:
+            self._envName = self._nodeGroup._parent.envName
+        except AttributeError:
+            # Do not set it, it'll fail the self.raise_unless_can_update_to_api() check if unset
+            pass
 
     def update_from_env_dict(
         self,

@@ -24,16 +24,6 @@ def test_JelasticNode_simple_load():
     JelasticNode()
 
 
-def test_JelasticNode_with_just_node_group():
-    """
-    JelasticNode can be instantiated
-    """
-    node = JelasticNode()
-    assert not node.is_from_api
-    node.update_from_env_dict(node_from_env=get_standard_node())
-    assert node.is_from_api
-
-
 def test_JelasticNode_with_node_group():
     """
     JelasticNode can be instantiated with just node_group
@@ -54,6 +44,16 @@ def test_JelasticNode_with_node_from_env():
         # There was one deprecationWarning for node_from_env() usage
         assert len(warns) == 1
         assert issubclass(warns[0].category, DeprecationWarning)
+
+
+def test_JelasticNode_update_from_env_dict():
+    """
+    JelasticNode can get an env dict
+    """
+    node = JelasticNode()
+    assert not node.is_from_api
+    node.update_from_env_dict(node_from_env=get_standard_node())
+    assert node.is_from_api
 
 
 def test_JelasticNode_update_from_broken_env_dict():

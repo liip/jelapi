@@ -459,3 +459,83 @@ def test_JelasticNodeGroup_containerVolumes():
     )
     assert len(ng.containerVolumes) == 2
     assert jelapic()._.called_once()
+
+
+def test_JelasticNodeGroup_containerVolumes_add_remove():
+    """
+    Get container volumes
+    """
+    ng = JelasticNodeGroupFactory()
+    ng.attach_to_environment(jelenv)
+
+    ng._mountPoints = []
+    ng.copy_self_as_from_api("_mountPoints")
+    ng._containerVolumes = ["/tmp/volume1", "/tmp/volume2"]
+    ng.copy_self_as_from_api("_containerVolumes")
+
+    ng.containerVolumes.append("/srv")
+    assert ng.differs_from_api()
+
+    jelapic()._ = Mock()
+    ng.save()
+    # There was one add
+    jelapic()._.assert_called_once()
+    assert not ng.differs_from_api()
+    assert len(ng.containerVolumes) == 3
+
+    del ng.containerVolumes[2]
+    assert len(ng.containerVolumes) == 2
+
+    jelapic()._.reset_mock()
+    ng.save()
+    # There was one removal
+    jelapic()._.assert_called_once()
+    assert not ng.differs_from_api()
+    assert len(ng.containerVolumes) == len(ng._containerVolumes) == 2
+
+    #  Add an identical
+    ng.containerVolumes.append(ng.containerVolumes[0])
+    with pytest.raises(JelasticObjectException):
+        ng.save()
+
+
+def test_JelasticNodeGroup_topology_without_nodes():
+    """
+    These fail, we need the node for lots of information
+    """
+    ng = JelasticNodeGroupFactory()
+    ng.nodes = []
+    with pytest.raises(JelasticObjectException):
+        ng.get_topology()
+
+
+def test_JelasticNodeGroup_topology():
+    """
+    Get a full'er topology
+    """
+    # Instantiate a somewhat realistic environment
+    cp_node_group = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
+    )
+    storage_node_group = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+    )
+
+    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    cp_node_group.attach_to_environment(jelenv)
+    storage_node_group.attach_to_environment(jelenv)
+
+    cp_node_group.links["SQLDB"] = JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+    cp_node_group.nodes[0].docker_registry = {"url": "https://docker.example.com/"}
+    cp_node_group.nodes[0].docker_image = "example_image:tag"
+    assert len(cp_node_group.nodes) > 0
+
+    # Now get it
+    topology = cp_node_group.get_topology()
+    assert topology["count"] == len(cp_node_group.nodes)
+    # Check that the links' syntax got computed correctly
+    assert topology["links"] == ["sqldb:SQLDB"]
+
+    cp_node_group.links["BROKEN"] = "sqldb"
+    with pytest.raises(TypeError):
+        cp_node_group.get_topology()

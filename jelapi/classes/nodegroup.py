@@ -295,7 +295,7 @@ class JelasticNodeGroup(_JelasticObject):
                     (
                         ng.nodeGroupType.value
                         for ng in self._parent.nodeGroups.values()
-                        if ng.nodeGroup == ngtype
+                        if ng.nodeGroupType == ngtype
                     ),
                 )
                 topology["links"].append(f"{node_group}:{key}")

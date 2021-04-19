@@ -10,10 +10,7 @@ from jelapi.classes.nodegroup import JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
 from jelapi.factories import JelasticNodeGroupFactory
 
-from .utils import (
-    get_standard_env,
-    get_standard_mount_point,
-)
+from .utils import get_standard_env, get_standard_mount_point
 
 # Create default environment
 jelenv = JelasticEnvironment(jelastic_env=get_standard_env())

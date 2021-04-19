@@ -26,6 +26,15 @@ def test_JelasticNodeGroup_simple_load():
     JelasticNodeGroup()
 
 
+def test_JelasticNodeGroup_no_api_call_unless_setup():
+    """
+    JelasticNodeGroup can be instantiated as-is
+    """
+    ng = JelasticNodeGroup()
+    with pytest.raises(JelasticObjectException):
+        ng.raise_unless_can_call_api()
+
+
 def test_JelasticNodeGroup_with_enough_data():
     """
     JelasticNodeGroup can be instantiated, deprecated format
@@ -377,6 +386,35 @@ def test_JelasticNodeGroup_links():
     """
     ng = JelasticNodeGroupFactory()
     assert len(ng.links) == 0
+
+
+def test_JelasticNodeGroup_links_cannot_be_fetched_without_nodes():
+    """
+    Getting the links doesn't work without nodes
+    """
+    ng = JelasticNodeGroupFactory()
+    ng.nodes = []
+    with pytest.raises(JelasticObjectException):
+        ng.links
+
+
+def test_JelasticNodeGroup_adding_links_means_topology_change():
+    """
+    Getting the links doesn't work without nodes
+    """
+    cpng = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
+    )
+    sqldbng = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+    )
+    cpng.attach_to_environment(jelenv)
+    sqldbng.attach_to_environment(jelenv)
+    assert len(cpng.links) == 0
+
+    cpng.links["SQLDB"] = JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+    assert len(cpng.links) == 1
+    assert cpng.needs_topology_update()
 
 
 def test_JelasticNodeGroup_links():

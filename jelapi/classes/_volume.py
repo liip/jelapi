@@ -48,12 +48,8 @@ class _JelasticVolume(_JelasticObject):
         """
 
         node_group.append_mount_point(self)
-        # Read-only attributes
-        try:
-            self._envName = self._nodeGroup._parent.envName
-        except AttributeError:
-            # Do not set it, it'll fail the self.raise_unless_can_update_to_api() check if unset
-            pass
+
+        self._envName = self._nodeGroup._parent.envName
 
     def save_to_jelastic(self):
         """

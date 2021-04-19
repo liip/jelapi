@@ -138,10 +138,13 @@ class JelasticNodeGroup(_JelasticObject):
                 envName=self.envName,
                 nodeGroup=self.nodeGroupType.value,
             )
-            self._mountPoints = [
-                JelasticMountPoint(node_group=self, mount_point_from_api=mp)
-                for mp in response["array"]
-            ]
+
+            self._mountPoints = []
+            for mpdict in response["array"]:
+                mp = JelasticMountPoint()
+                mp.update_from_env_dict(mpdict)
+                mp.attach_to_node_group(self)
+
             self.copy_self_as_from_api("_mountPoints")
         return self._mountPoints
 
@@ -313,6 +316,15 @@ class JelasticNodeGroup(_JelasticObject):
         """
         self.nodes.append(node)
         node._nodeGroup = self
+
+    def append_mount_point(self, mount_point: "JelasticMountPoint") -> None:
+        """
+        Called from mount_point, allow to append a mountPoint to our list
+        """
+        if not hasattr(self, "_mountPoints"):
+            self._mountPoints = []
+        self._mountPoints.append(mount_point)
+        mount_point._nodeGroup = self
 
     def attach_to_environment(self, environment: "JelasticEnvironment") -> None:
         """

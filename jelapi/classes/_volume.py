@@ -1,4 +1,4 @@
-from ..exceptions import JelasticObjectException
+from ..exceptions import deprecation
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import _JelasticObject, _JelAttrBool, _JelAttrStr
 from .nodegroup import JelasticNodeGroup
@@ -30,15 +30,30 @@ class _JelasticVolume(_JelasticObject):
         Construct a _JelasticVolume from basic stuff
         """
         super().__init__()
-        if not node_group:
-            raise JelasticObjectException("node_group is mandatory for init")
 
-        self._nodeGroup = node_group
-        self._envName = self._nodeGroup._parent.envName
+        if node_group:
+            deprecation(
+                "_Volume.__init__(): Passing node_group is deprecated; use attach_to_node_group instead",
+            )
+            self.attach_to_node_group(node_group)
+
         self._name = name
         self._path = path
         self.is_new = True
         assert self.differs_from_api
+
+    def attach_to_node_group(self, node_group: JelasticNodeGroup) -> None:
+        """
+        Connect node_group to mountPoint, and inversely
+        """
+
+        node_group.append_mount_point(self)
+        # Read-only attributes
+        try:
+            self._envName = self._nodeGroup._parent.envName
+        except AttributeError:
+            # Do not set it, it'll fail the self.raise_unless_can_update_to_api() check if unset
+            pass
 
     def save_to_jelastic(self):
         """

@@ -338,17 +338,17 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
     jelapic()._ = Mock(
         return_value={"array": []},
     )
-    cp_node_group.mountPoints.append(
-        JelasticMountPoint(
-            node_group=cp_node_group,
-            name="test",
-            path="/tmp/test",
-            sourcePath="/srv",
-            sourceNode=storage_node_group.nodes[0],
-        )
-    )
+    assert cp_node_group.mountPoints == []
     # As we fetched, to append
     jelapic()._.assert_called_once()
+
+    jmp = JelasticMountPoint(
+        name="test",
+        path="/tmp/test",
+        sourcePath="/srv",
+        sourceNode=storage_node_group.nodes[0],
+    )
+    jmp.attach_to_node_group(cp_node_group)
 
     assert len(cp_node_group.mountPoints) == 1
 
@@ -357,15 +357,14 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
     jelapic()._.assert_called_once()
 
     # Add another one, with the same path
-    cp_node_group.mountPoints.append(
-        JelasticMountPoint(
-            node_group=cp_node_group,
-            name="test2",
-            path="/tmp/test",
-            sourcePath="/srv/test2",
-            sourceNode=storage_node_group.nodes[0],
-        )
+    jmp2 = JelasticMountPoint(
+        name="test2",
+        path="/tmp/test",
+        sourcePath="/srv/test2",
+        sourceNode=storage_node_group.nodes[0],
     )
+    jmp2.attach_to_node_group(cp_node_group)
+
     with pytest.raises(JelasticObjectException):
         cp_node_group.save()
 
@@ -417,11 +416,10 @@ def test_JelasticNodeGroup_adding_links_means_topology_change():
     assert cpng.needs_topology_update()
 
 
-def test_JelasticNodeGroup_links():
+def test_JelasticNodeGroup_links_non_empty():
     """
     Getting the links works with a node that has a link
     """
-
     cpng = JelasticNodeGroupFactory(
         nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
     )
@@ -445,3 +443,19 @@ def test_JelasticNodeGroup_links():
     assert len(cpng.links) == 1
     assert "SQLDB" in cpng.links
     assert cpng.links["SQLDB"] == JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+
+
+def test_JelasticNodeGroup_containerVolumes():
+    """
+    Get container volumes
+    """
+    ng = JelasticNodeGroupFactory()
+    ng.attach_to_environment(jelenv)
+
+    ng._mountPoints = []
+
+    jelapic()._ = Mock(
+        return_value={"object": ["/tmp/volume1", "/tmp/volume2"]},
+    )
+    assert len(ng.containerVolumes) == 2
+    assert jelapic()._.called_once()

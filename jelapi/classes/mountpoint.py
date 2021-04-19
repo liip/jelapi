@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from ..exceptions import JelasticObjectException
+from ..exceptions import JelasticObjectException, deprecation
 from ._volume import _JelasticVolume
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import _JelAttrStr
@@ -17,10 +17,15 @@ class JelasticMountPoint(_JelasticVolume):
     sourceNode = _JelAttr(read_only=True)
     sourcePath = _JelAttrStr(read_only=True)
 
-    def _update_from_dict(self, mount_point_from_api: Dict[str, Any]) -> None:
+    def update_from_env_dict(self, mount_point_from_api: Dict[str, Any]) -> None:
         """
         Construct/Update our object from the structure
         """
+        if not hasattr(self, "_nodeGroup"):
+            raise JelasticObjectException(
+                "MountPoint cannot be updated from dict without being attached to a nodeGroup first"
+            )
+
         # Allow exploration of the returned object, but don't act on it.
         self._mount_point = mount_point_from_api
 
@@ -60,25 +65,31 @@ class JelasticMountPoint(_JelasticVolume):
         """
         Construct a JelasticMountPoint from the outer data
         """
-        if not node_group:
-            raise JelasticObjectException("node_group is mandatory for init")
+        super().__init__(name=name, path=path)
+
+        if node_group:
+            deprecation(
+                "mountPoint.__init__(): passing node_group is deprecated; use attach_to_node_group() instead"
+            )
+            self.attach_to_node_group(node_group)
+
         if mount_point_from_api:
-            super().__init__(node_group=node_group)
-            self._update_from_dict(mount_point_from_api=mount_point_from_api)
+            if not node_group:
+                raise TypeError(
+                    "The deprecated __init__ call needs both node_group and mount_point_from_api"
+                )
+            deprecation(
+                "mountPoint.__init__(): passing mount_point_from_api is deprecated; use update_from_env_dict() instead"
+            )
+            self.update_from_env_dict(mount_point_from_api=mount_point_from_api)
             assert not self.differs_from_api()
 
-        elif name and path and sourceNode and sourcePath:
-            # IF we create a new JelasticMountPoint
-            super().__init__(node_group=node_group, name=name, path=path)
+        if sourceNode and sourcePath:
             # These go in RO attributes
             self._sourceNode = sourceNode
             self._sourcePath = sourcePath
             assert not self.is_from_api
             assert self.differs_from_api()
-        else:
-            raise TypeError(
-                "MountPoint instantiation needs either mount_point_from_api, or (name, path, sourceNode, sourcePath)"
-            )
 
     def add_to_api(self) -> None:
         """

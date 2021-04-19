@@ -12,6 +12,7 @@ from jelapi.factories import JelasticNodeGroupFactory
 from .utils import (
     get_standard_env,
     get_standard_mount_point,
+    get_standard_node,
     get_standard_node_group,
 )
 
@@ -376,3 +377,33 @@ def test_JelasticNodeGroup_links():
     """
     ng = JelasticNodeGroupFactory()
     assert len(ng.links) == 0
+
+
+def test_JelasticNodeGroup_links():
+    """
+    Getting the links works with a node that has a link
+    """
+
+    cpng = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
+    )
+    sqldbng = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
+    )
+    cpng.attach_to_environment(jelenv)
+    sqldbng.attach_to_environment(jelenv)
+
+    ndict = get_standard_node()
+    # Force the cp node to not be "id": 1 (as that's the sql node's)
+    ndict["id"] = 42
+    ndict["customitem"] = {
+        "dockerLinks": [
+            {"type": "IN", "sourceNodeId": sqldbng.nodes[0].id, "alias": "SQLDB"},
+            {"type": "OUT", "sourceNodeId": 154},
+        ]
+    }
+    cpng.nodes[0].update_from_env_dict(ndict)
+
+    assert len(cpng.links) == 1
+    assert "SQLDB" in cpng.links
+    assert cpng.links["SQLDB"] == JelasticNodeGroup.NodeGroupType.SQL_DATABASE

@@ -70,7 +70,9 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
         Generate a standard NodeGroup, with one node of a random nodeType
         It can be set according to needs afterwards.
         """
-        instance.update_from_env_dict(get_standard_node_group())
+        instance.update_from_env_dict(
+            get_standard_node_group(node_group_type=instance.nodeGroupType)
+        )
         node = JelasticNodeFactory()
         node.attach_to_node_group(instance)
         instance.copy_self_as_from_api("nodes")

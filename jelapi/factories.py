@@ -1,7 +1,7 @@
 import factory
 from faker_enum import EnumProvider
 
-from tests.utils import get_standard_env
+from tests.utils import get_standard_env, get_standard_node
 
 from . import classes
 
@@ -24,7 +24,7 @@ class _JelasticNodeGroupFactory(factory.Factory):
     nodeType = factory.Faker("enum", enum_cls=classes.JelasticNode.NodeType)
 
 
-class JelasticNodeFactory(factory.Factory):
+class _JelasticNodeFactory(factory.Factory):
     class Meta:
         model = classes.JelasticNode
 
@@ -63,3 +63,13 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
         Generate a standard Env
         """
         instance.nodes = [JelasticNodeFactory(node_group=instance)]
+
+
+class JelasticNodeFactory(_JelasticNodeFactory):
+    @classmethod
+    def _after_postgeneration(obj, instance, create, results=None):
+        """
+        Generate a standard Node
+        """
+        instance.update_from_env_dict(get_standard_node())
+        assert instance.is_from_api

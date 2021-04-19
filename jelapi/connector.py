@@ -24,7 +24,7 @@ class JelasticAPIConnector:
         """
         try:
             return len(self.apiurl) > 0 and len(self.apidata["session"]) > 0
-        except TypeError:
+        except (TypeError, AttributeError):
             return False
 
     def _apicall(self, uri: str, method: str = "get", data: dict = {}) -> Dict:

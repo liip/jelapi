@@ -157,7 +157,7 @@ def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     for attr in ["shortdomain", "domain", "envName"]:
         assert getattr(jelenv, attr)
         with pytest.raises(AttributeError):
@@ -168,7 +168,7 @@ def test_JelasticEnvironment_doesnt_differ_from_api_initially():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert not jelenv.differs_from_api()
 
 
@@ -176,7 +176,7 @@ def test_JelasticEnvironment_str_rep():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert str(jelenv) == "JelasticEnvironment 'envName' <https://domain>"
 
 
@@ -184,7 +184,7 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     jelenv.displayName = "different displayName"
     assert jelenv.differs_from_api()
 
@@ -491,7 +491,7 @@ def test_JelasticEnvironment_differs_from_api_if_extdomains_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert not jelenv.differs_from_api()
     jelenv.extdomains.append("test.example.com")
     assert jelenv.differs_from_api()
@@ -619,7 +619,7 @@ def test_JelasticEnvironment_sumstats():
     jelapic()._ = Mock(
         return_value={"stats": []},  # Of course there is something in that dict.
     )
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     with pytest.raises(TypeError):
         # duration is needed
         jelenv.get_sumstats()

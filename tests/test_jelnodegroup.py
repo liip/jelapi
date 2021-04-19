@@ -7,7 +7,7 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticMountPoint, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticNodeGroupFactory
+from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
 from .utils import (
     get_standard_env,
@@ -16,7 +16,7 @@ from .utils import (
     get_standard_node_group,
 )
 
-jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+jelenv = JelasticEnvironmentFactory()
 
 
 def test_JelasticNodeGroup_simple_load():
@@ -103,9 +103,7 @@ def test_JelasticNodeGroup_envVars_refreshes_from_API():
     """
     node_group = JelasticNodeGroupFactory()
     assert node_group.nodeGroupType
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
     node_group.raise_unless_can_call_api()
 
     jelapic()._ = Mock(
@@ -134,9 +132,7 @@ def test_JelasticNodeGroup_envVars_raises_if_set_empty():
     Saving a faked envVars without fetch will raise
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
     )
@@ -176,9 +172,7 @@ def test_JelasticNodeGroup_envVars_raises_if_env_is_not_running():
 
 def test_JelasticNodeGroup_envVars_updates():
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     jelapic()._ = Mock(
         return_value={"object": {"VAR": "value"}},
@@ -216,9 +210,7 @@ def test_JelasticNodeGroup_displayName_update():
     Update displayName
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     assert not node_group.differs_from_api()
     node_group.displayName = "A new name for a new day"
@@ -235,9 +227,7 @@ def test_JelasticNodeGroup_SLB_update():
     Update SLB status
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     assert not node_group.differs_from_api()
     # Toggle the status
@@ -255,9 +245,7 @@ def test_JelasticNodeGroup_redeploy():
     NodeGroups can be redeployed
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     assert not node_group.differs_from_api()
     node_group.redeploy(docker_tag="latest")
@@ -268,9 +256,7 @@ def test_JelasticNodeGroup_read_file():
     We can gather a single file in a nodegroup
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     jelapic()._ = Mock(
         return_value={
@@ -292,9 +278,7 @@ def test_JelasticNodeGroup_get_mountPoints():
     We can get the list of mountPoints
     """
     node_group = JelasticNodeGroupFactory()
-    node_group.attach_to_environment(
-        JelasticEnvironment(jelastic_env=get_standard_env())
-    )
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     assert not hasattr(node_group, "_mountPoints")
     jelapic()._ = Mock(
@@ -331,7 +315,7 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
         nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
     )
 
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     cp_node_group.attach_to_environment(jelenv)
     storage_node_group.attach_to_environment(jelenv)
 
@@ -420,18 +404,13 @@ def test_JelasticNodeGroup_links_non_empty():
     """
     Getting the links works with a node that has a link
     """
-    cpng = JelasticNodeGroupFactory(
-        nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
-    )
-    sqldbng = JelasticNodeGroupFactory(
-        nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
-    )
-    cpng.attach_to_environment(jelenv)
-    sqldbng.attach_to_environment(jelenv)
+    jelenv = JelasticEnvironmentFactory()
+    cpng = jelenv.nodeGroups["cp"]
+    sqldbng = jelenv.nodeGroups["sqldb"]
 
     ndict = get_standard_node()
-    # Force the cp node to not be "id": 1 (as that's the sql node's)
-    ndict["id"] = 42
+    ndict["id"] = jelenv.nodeGroups["cp"].nodes[0].id
+
     ndict["customitem"] = {
         "dockerLinks": [
             {"type": "IN", "sourceNodeId": sqldbng.nodes[0].id, "alias": "SQLDB"},
@@ -513,17 +492,9 @@ def test_JelasticNodeGroup_topology():
     """
     Get a full'er topology
     """
-    # Instantiate a somewhat realistic environment
-    cp_node_group = JelasticNodeGroupFactory(
-        nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
-    )
-    storage_node_group = JelasticNodeGroupFactory(
-        nodeGroupType=JelasticNodeGroup.NodeGroupType.SQL_DATABASE
-    )
-
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
-    cp_node_group.attach_to_environment(jelenv)
-    storage_node_group.attach_to_environment(jelenv)
+    jelenv = JelasticEnvironmentFactory()
+    cp_node_group = jelenv.nodeGroups["cp"]
+    storage_node_group = jelenv.nodeGroups["storage"]
 
     cp_node_group.links["SQLDB"] = JelasticNodeGroup.NodeGroupType.SQL_DATABASE
     cp_node_group.nodes[0].docker_registry = {"url": "https://docker.example.com/"}

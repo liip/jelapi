@@ -46,6 +46,13 @@ class JelasticEnvironmentFactory(_JelasticEnvironmentFactory):
         ngs = {}
         for key in ["cp", "sqldb", "storage"]:
             ng = JelasticNodeGroupFactory()
+            ng._nodeGroupType = next(
+                (
+                    ng
+                    for ng in classes.JelasticNodeGroup.NodeGroupType
+                    if ng.value == key
+                ),
+            )
             ng.attach_to_environment(instance)
 
             for n in ng.nodes:
@@ -81,5 +88,14 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
             get_standard_node_group(node_group_type=instance.nodeGroupType)
         )
         node = JelasticNodeFactory()
+
+        # Set different Ids
+        if instance.nodeGroupType.value == "cp":
+            node._id = 11
+        if instance.nodeGroupType.value == "sqldb":
+            node._id = 12
+        if instance.nodeGroupType.value == "storage":
+            node._id = 13
+
         node.attach_to_node_group(instance)
         instance.copy_self_as_from_api("nodes")

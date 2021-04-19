@@ -8,21 +8,14 @@ from jelapi.classes.environment import JelasticEnvironment
 from jelapi.classes.mountpoint import JelasticMountPoint
 from jelapi.classes.nodegroup import JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticNodeGroupFactory
+from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
 from .utils import get_standard_env, get_standard_mount_point
 
 # Create default environment
-jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
-
-cp_node_group = JelasticNodeGroupFactory(
-    nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
-)
-cp_node_group.attach_to_environment(jelenv)
-storage_node_group = JelasticNodeGroupFactory(
-    nodeGroupType=JelasticNodeGroup.NodeGroupType.STORAGE_CONTAINER
-)
-storage_node_group.attach_to_environment(jelenv)
+jelenv = JelasticEnvironmentFactory()
+cp_node_group = jelenv.nodeGroups["cp"]
+storage_node_group = jelenv.nodeGroups["storage"]
 
 
 def test_JelasticMountPoint_simple():
@@ -43,7 +36,10 @@ def test_JelasticMountPoint_deprecations():
 
     with warnings.catch_warnings(record=True) as warns:
         JelasticMountPoint(
-            node_group=cp_node_group, mount_point_from_api=get_standard_mount_point()
+            node_group=cp_node_group,
+            mount_point_from_api=get_standard_mount_point(
+                storage_node_group.nodes[0].id
+            ),
         )
         assert len(warns) == 2
 

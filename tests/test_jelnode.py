@@ -7,13 +7,16 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticNodeFactory, JelasticNodeGroupFactory
+from jelapi.factories import (
+    JelasticEnvironmentFactory,
+    JelasticNodeFactory,
+    JelasticNodeGroupFactory,
+)
 
 from .utils import get_standard_env, get_standard_node
 
-jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
-node_group = JelasticNodeGroupFactory()
-node_group.attach_to_environment(jelenv)
+jelenv = JelasticEnvironmentFactory()
+node_group = list(jelenv.nodeGroups.values())[0]
 
 
 def test_JelasticNode_simple_load():

@@ -44,6 +44,13 @@ def test_JelasticMountPoint_deprecations():
         JelasticMountPoint(node_group=cp_node_group)
         assert len(warns) == 1
 
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticMountPoint(
+            node_group=cp_node_group, mount_point_from_api=get_standard_mount_point()
+        )
+        assert len(warns) == 2
+
+    # In "deprecated mode", both are needed
     with pytest.raises(TypeError):
         JelasticMountPoint(mount_point_from_api=get_standard_mount_point())
 
@@ -54,6 +61,11 @@ def test_JelasticMountPoint_init_from_api():
     """
     # The Environment needs to have the target mount point ID as node
     jmp = JelasticMountPoint()
+    with pytest.raises(JelasticObjectException):
+        # Cannot update_from_env before attaching to node_group
+        jmp.update_from_env_dict(
+            get_standard_mount_point(source_node_id=storage_node_group.nodes[0].id)
+        )
     jmp.attach_to_node_group(cp_node_group)
     jmp.update_from_env_dict(
         get_standard_mount_point(source_node_id=storage_node_group.nodes[0].id)

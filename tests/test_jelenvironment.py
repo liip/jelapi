@@ -1,20 +1,58 @@
+import warnings
 from unittest.mock import Mock
 
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode
+from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticEnvironmentFactory
+from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
 from .utils import get_standard_env, get_standard_node, get_standard_node_groups
 
 
-def test_JelasticEnvironment_with_enough_data():
+def test_JelasticEnvironment_simple():
+    """
+    JelasticEnvironment can be instantiated as is
+    """
+    JelasticEnvironment()
+
+
+def test_JelasticEnvironment_factory():
+    """
+    JelasticEnvironment can be instantiated as is
+    """
+    j = JelasticEnvironmentFactory()
+    assert len(j.nodeGroups) == 3
+    assert "cp" in j.nodeGroups.keys()
+    assert "sqldb" in j.nodeGroups.keys()
+    assert "storage" in j.nodeGroups.keys()
+
+
+def test_JelasticEnvironment_deprecated():
     """
     JelasticEnvironment can be instantiated
     """
-    JelasticEnvironment(jelastic_env=get_standard_env())
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticEnvironment(jelastic_env=get_standard_env())
+        assert len(warns) == 1
+
+
+def test_JelasticEnvironment_ordering():
+    """
+    JelasticEnvironment can be instantiated, but the updates cannot be called in any order
+    """
+    j = JelasticEnvironment()
+    with pytest.raises(JelasticObjectException):
+        j.update_node_groups_from_info([])
+
+    with pytest.raises(JelasticObjectException):
+        j.update_nodes_from_info([])
+
+    # Calling the update_from_env_dict first solves this
+    j.update_from_env_dict(get_standard_env())
+    j.update_node_groups_from_info([])
+    j.update_nodes_from_info([])
 
 
 def test_JelasticEnvironment_with_missing_data():
@@ -23,8 +61,15 @@ def test_JelasticEnvironment_with_missing_data():
     """
     env_truncated = get_standard_env()
     del env_truncated["domain"]
+
+    # Deprecated format
+    with warnings.catch_warnings(record=True):
+        with pytest.raises(KeyError):
+            JelasticEnvironment(jelastic_env=env_truncated)
+
+    j = JelasticEnvironment()
     with pytest.raises(KeyError):
-        JelasticEnvironment(jelastic_env=env_truncated)
+        j.update_from_env_dict(env_truncated)
 
 
 def test_JelasticEnvironment_getter_by_name():
@@ -583,6 +628,31 @@ def test_JelasticEnvironment_sumstats():
     jelenv.get_sumstats(8 * 60 * 60)
 
 
-def test_JelasticEnvironmentFactory():
-    jelenv = JelasticEnvironmentFactory()
-    assert len(jelenv.nodeGroups) == 3
+def test_JelasticEnvironment_no_nodeGroups_wipe():
+    """
+    nodeGroups cannot be wiped
+    """
+    j = JelasticEnvironmentFactory()
+    j.nodeGroups = {}
+    assert j.differs_from_api()
+    # We cannot wipe nodeGroups
+    with pytest.raises(JelasticObjectException):
+        j.save()
+
+
+def test_JelasticEnvironment_add_node_group():
+    """
+    Test saving of nodeGroups' updates, adding one
+    """
+    j = JelasticEnvironmentFactory()
+    j.nodeGroups["nosql"] = JelasticNodeGroupFactory(
+        nodeGroupType=JelasticNodeGroup.NodeGroupType.NOSQL_DATABASE
+    )
+    assert j.differs_from_api()
+
+    jelapic()._ = Mock(
+        return_value={"env": get_standard_env(), "envGroups": []},
+    )
+    j.save()
+    # Called twice, once for saving, once for refresh
+    jelapic()._.assert_called()

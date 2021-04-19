@@ -12,8 +12,6 @@ class _JelasticEnvironmentFactory(factory.Factory):
     class Meta:
         model = classes.JelasticEnvironment
 
-    jelastic_env = get_standard_env()
-
 
 class _JelasticNodeGroupFactory(factory.Factory):
     class Meta:
@@ -31,12 +29,20 @@ class _JelasticNodeFactory(factory.Factory):
     nodeType = factory.Faker("enum", enum_cls=classes.JelasticNode.NodeType)
 
 
+class _JelasticMountPointFactory(factory.Factory):
+    class Meta:
+        model = classes.JelasticMountPoint
+
+    nodeType = factory.Faker("enum", enum_cls=classes.JelasticNode.NodeType)
+
+
 class JelasticEnvironmentFactory(_JelasticEnvironmentFactory):
     @classmethod
     def _after_postgeneration(obj, instance, create, results=None):
         """
         Generate a standard Env
         """
+        instance.update_from_env_dict(get_standard_env())
         ngs = {}
         for key in ["cp", "sqldb", "storage"]:
             ng = JelasticNodeGroupFactory()
@@ -51,6 +57,7 @@ class JelasticEnvironmentFactory(_JelasticEnvironmentFactory):
             ngs[key] = ng
 
         instance.nodeGroups = ngs
+        instance.copy_self_as_from_api("nodeGroups")
 
 
 class JelasticNodeFactory(_JelasticNodeFactory):

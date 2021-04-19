@@ -28,7 +28,6 @@ class JelasticNodeFactory(factory.Factory):
     class Meta:
         model = classes.JelasticNode
 
-    node_group = _JelasticNodeGroupFactory()
     nodeType = factory.Faker("enum", enum_cls=classes.JelasticNode.NodeType)
 
 

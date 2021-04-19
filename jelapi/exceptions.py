@@ -1,3 +1,6 @@
+from warnings import warn
+
+
 class JelapiException(Exception):
     """
     Generic Jelapi Exception
@@ -20,3 +23,10 @@ class JelasticObjectException(JelapiException):
     """
 
     pass
+
+
+def deprecation(message: str) -> None:
+    """
+    Announce deprecated argumets, functions, classes
+    """
+    warn(message, DeprecationWarning, stacklevel=2)

@@ -342,7 +342,9 @@ class JelasticNodeGroup(_JelasticObject):
             # Instantiate with one node
             from .node import JelasticNode
 
-            self.nodes = [JelasticNode(node_group=self, nodeType=nodeType)]
+            node = JelasticNode(nodeType=nodeType)
+            node.set_node_group(self)
+            self.nodes = [node]
         else:
             raise TypeError(
                 "NodeGroup instantiation needs either node_group_from_env or (nodeGroup, nodeType)"

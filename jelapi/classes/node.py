@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import Any, Dict, List
 
-from ..exceptions import JelasticObjectException
+from ..exceptions import JelasticObjectException, deprecation
 from .jelasticobject import _JelasticAttribute as _JelAttr
 from .jelasticobject import (
     _JelasticObject,
@@ -73,9 +73,17 @@ class JelasticNode(_JelasticObject):
     flexibleCloudlets = _JelAttrInt()
     allowFlexibleCloudletsReduction = _JelAttrBool(checked_for_differences=False)
 
-    def _update_from_dict(
+    def set_node_group(self, node_group: "JelasticNodeGroup") -> None:
+        """
+        Set the nodeGroup, with all accompanying things
+        """
+        self._nodeGroup = node_group
+
+        # Read-only attributes
+        self._envName = self._nodeGroup._parent.envName
+
+    def update_from_env_dict(
         self,
-        node_group: "JelasticNodeGroup",
         node_from_env: Dict[str, Any],
     ) -> None:
         """
@@ -83,10 +91,6 @@ class JelasticNode(_JelasticObject):
         """
         # Allow exploration of the returned object, but don't act on it.
         self._node = node_from_env
-        self._nodeGroup = node_group
-
-        # Read-only attributes
-        self._envName = self._nodeGroup._parent.envName
 
         self._nodeType = next(
             (nt for nt in self.NodeType if nt.value == self._node["nodeType"]), None
@@ -137,9 +141,11 @@ class JelasticNode(_JelasticObject):
     def __init__(
         self,
         *,
-        node_group: "JelasticNodeGroup",
-        node_from_env: Dict[str, Any] = None,
         nodeType: NodeType = None,
+        fixedCloudlets: int = 1,
+        flexibleCloudlets: int = 2,
+        node_group: "JelasticNodeGroup" = None,
+        node_from_env: Dict[str, Any] = None,
     ) -> None:
         """
         Construct a JelasticNode from the outer data, or from
@@ -148,16 +154,26 @@ class JelasticNode(_JelasticObject):
         # By default, do not allow flexibleCloudlets' reduction
         self.allowFlexibleCloudletsReduction = False
         # Set initials
-        self.fixedCloudlets = 1
-        self.flexibleCloudlets = 2
+        self.fixedCloudlets = fixedCloudlets
+        self.flexibleCloudlets = flexibleCloudlets
 
-        if node_from_env:
-            self._update_from_dict(node_group=node_group, node_from_env=node_from_env)
-        elif nodeType:
+        if nodeType:
             self._nodeType = nodeType
             self._nodemission = nodeType.value
-        else:
-            raise TypeError("Node instantiation needs either node_from_env or nodeType")
+
+        if node_group:
+            deprecation(
+                "Node.__init__(): Passing node_group is deprecated; use set_node_group instead",
+            )
+            self.set_node_group(node_group)
+            assert self.nodeGroup == node_group
+
+        if node_from_env:
+            deprecation(
+                "Node.__init__(): Passing node_from_env is deprecated; use update_from_env_dict instead",
+            )
+            self.update_from_env_dict(node_from_env=node_from_env)
+            assert self.is_from_api
 
     @property
     def links(self) -> List[Dict[str, Any]]:
@@ -175,6 +191,11 @@ class JelasticNode(_JelasticObject):
         return f"JelasticNode id:{self.id}"
 
     def _set_cloudlets(self):
+        """
+        Set the cloudlets' count on that node
+        """
+        self.raise_unless_can_update_to_api()
+
         if not self._from_api or (
             self._from_api["fixedCloudlets"] != self.fixedCloudlets
             or self._from_api["flexibleCloudlets"] != self.flexibleCloudlets
@@ -210,6 +231,15 @@ class JelasticNode(_JelasticObject):
                 "Cannot fetch envVars from node without nodeGroup (not from API ?)"
             )
 
+    def raise_unless_can_update_to_api(self):
+        """
+        Check if we can update to API, or raise
+        """
+        if not hasattr(self, "envName"):
+            raise JelasticObjectException(
+                "Cannot update to API, use set_node_group() before saving!"
+            )
+
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
@@ -223,6 +253,9 @@ class JelasticNode(_JelasticObject):
         """
         if not isinstance(commands, list):
             raise TypeError("execute_commands() takes a a list of commands")
+
+        self.raise_unless_can_update_to_api()
+
         command_list = [{"command": cmd, "params": ""} for cmd in commands]
         command_results = self.api._(
             "Environment.Control.ExecCmdById",
@@ -249,6 +282,9 @@ class JelasticNode(_JelasticObject):
         """
         if not path:
             raise TypeError(f"path {path} cannot be empty")
+
+        self.raise_unless_can_update_to_api()
+
         response = self.api._(
             "Environment.File.Read",
             envName=self.envName,

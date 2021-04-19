@@ -92,7 +92,7 @@ class JelasticMountPoint(_JelasticVolume):
         self.api._(
             "Environment.File.AddMountPointByGroup",
             envName=self._envName,
-            nodeGroup=self._nodeGroup.nodeGroup.value,
+            nodeGroup=self._nodeGroup.nodeGroupType.value,
             path=self.path,
             sourceNodeId=self.sourceNode.id,
             sourcePath=self.sourcePath,
@@ -112,7 +112,7 @@ class JelasticMountPoint(_JelasticVolume):
         self.api._(
             "Environment.File.RemoveMountPointByGroup",
             envName=self._envName,
-            nodeGroup=self._nodeGroup.nodeGroup.value,
+            nodeGroup=self._nodeGroup.nodeGroupType.value,
             path=self.path,
         )
         self.copy_self_as_from_api()

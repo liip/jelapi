@@ -19,7 +19,9 @@ class _JelasticNodeGroupFactory(factory.Factory):
     class Meta:
         model = classes.JelasticNodeGroup
 
-    nodeGroup = factory.Faker("enum", enum_cls=classes.JelasticNodeGroup.NodeGroupType)
+    nodeGroupType = factory.Faker(
+        "enum", enum_cls=classes.JelasticNodeGroup.NodeGroupType
+    )
 
 
 class _JelasticNodeFactory(factory.Factory):
@@ -38,7 +40,7 @@ class JelasticEnvironmentFactory(_JelasticEnvironmentFactory):
         ngs = {}
         for key in ["cp", "sqldb", "storage"]:
             ng = JelasticNodeGroupFactory()
-            ng.set_environment(instance)
+            ng.attach_to_environment(instance)
 
             for n in ng.nodes:
                 if key in ["cp", "sqldb"]:
@@ -70,6 +72,5 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
         """
         instance.update_from_env_dict(get_standard_node_group())
         node = JelasticNodeFactory()
-        node.set_node_group(instance)
-        instance.nodes = [node]
+        node.attach_to_node_group(instance)
         instance.copy_self_as_from_api("nodes")

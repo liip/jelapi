@@ -35,7 +35,7 @@ class JelasticNodeGroup(_JelasticObject):
         NOSQL_DATABASE = "nosqldb"
         STORAGE_CONTAINER = "storage"
 
-    nodeGroup = _JelAttr(read_only=True)
+    nodeGroupType = _JelAttr(read_only=True)
     envName = _JelAttrStr(read_only=True)
 
     isSLBAccessEnabled = _JelAttrBool()
@@ -82,7 +82,7 @@ class JelasticNodeGroup(_JelasticObject):
             response = self.api._(
                 "Environment.Control.GetContainerEnvVarsByGroup",
                 envName=self.envName,
-                nodeGroup=self.nodeGroup.value,
+                nodeGroup=self.nodeGroupType.value,
             )
             self._envVars = response["object"]
             self.copy_self_as_from_api("_envVars")
@@ -107,7 +107,7 @@ class JelasticNodeGroup(_JelasticObject):
                 self.api._(
                     "Environment.Control.SetContainerEnvVarsByGroup",
                     envName=self.envName,
-                    nodeGroup=self.nodeGroup.value,
+                    nodeGroup=self.nodeGroupType.value,
                     data=json.dumps(self._envVars),
                 )
                 self.copy_self_as_from_api("_envVars")
@@ -118,13 +118,25 @@ class JelasticNodeGroup(_JelasticObject):
         Lazy load mountPoints when they're accessed
         """
         self.raise_unless_can_call_api()
+
+        # from .environment import JelasticEnvironment
         from .mountpoint import JelasticMountPoint
 
+        # JelStatus = JelasticEnvironment.Status
+        #
+        # if self._parent.status not in [
+        #     JelStatus.RUNNING,
+        #     JelStatus.CREATING,
+        #     JelStatus.CLONING,
+        # ]:
+        #     raise JelasticObjectException(
+        #         "envVars cannot be gathered on environments not running"
+        #     )
         if not hasattr(self, "_mountPoints"):
             response = self.api._(
                 "Environment.File.GetMountPoints",
                 envName=self.envName,
-                nodeGroup=self.nodeGroup.value,
+                nodeGroup=self.nodeGroupType.value,
             )
             self._mountPoints = [
                 JelasticMountPoint(node_group=self, mount_point_from_api=mp)
@@ -145,7 +157,7 @@ class JelasticNodeGroup(_JelasticObject):
             for link in self.nodes[0].links:
                 for node_group in self._parent.nodeGroups.values():
                     if link["sourceNodeId"] in [n.id for n in node_group.nodes]:
-                        self._links[link["alias"]] = node_group.nodeGroup
+                        self._links[link["alias"]] = node_group.nodeGroupType
                         break
             self.copy_self_as_from_api("_links")
 
@@ -188,7 +200,7 @@ class JelasticNodeGroup(_JelasticObject):
             response = self.api._(
                 "Environment.Control.GetContainerVolumesByGroup",
                 envName=self.envName,
-                nodeGroup=self.nodeGroup.value,
+                nodeGroup=self.nodeGroupType.value,
             )
             # We need to exclude the mountPoints
             self._containerVolumes = [
@@ -221,7 +233,7 @@ class JelasticNodeGroup(_JelasticObject):
                 self.api._(
                     "Environment.Control.RemoveContainerVolumes",
                     envName=self.envName,
-                    nodeGroup=self.nodeGroup.value,
+                    nodeGroup=self.nodeGroupType.value,
                     volumes=json.dumps(toremove),
                 )
 
@@ -235,7 +247,7 @@ class JelasticNodeGroup(_JelasticObject):
                 self.api._(
                     "Environment.Control.AddContainerVolumes",
                     envName=self.envName,
-                    nodeGroup=self.nodeGroup.value,
+                    nodeGroup=self.nodeGroupType.value,
                     volumes=json.dumps(toadd),
                 )
             self.copy_self_as_from_api("_containerVolumes")
@@ -252,7 +264,7 @@ class JelasticNodeGroup(_JelasticObject):
             "count": len(self.nodes),
             "restartDelay": 0,
             "displayName": self.displayName,
-            "nodeGroup": self.nodeGroup.value,
+            "nodeGroup": self.nodeGroupType.value,
             "nodeType": node0.nodeType.value,
             "mission": node0.nodemission,
             "fixedCloudlets": node0.fixedCloudlets,
@@ -278,7 +290,7 @@ class JelasticNodeGroup(_JelasticObject):
                 # Find the correct node_group value ("storage" or "sqldb") in the parent's
                 node_group = next(
                     (
-                        ng.nodeGroup.value
+                        ng.nodeGroupType.value
                         for ng in self._parent.nodeGroups.values()
                         if ng.nodeGroup == ngtype
                     ),
@@ -295,14 +307,25 @@ class JelasticNodeGroup(_JelasticObject):
             return False
         return self._from_api["_links"] != self._links
 
-    def set_environment(self, environment: "JelasticEnvironment") -> None:
+    def append_node(self, node: "JelasticNode") -> None:
         """
-        Set the parent environment
+        Called from node, allow to append a node to our list
         """
-        self._parent = environment
+        self.nodes.append(node)
+        node._nodeGroup = self
 
-        # Read-only attributes
-        self._envName = self._parent.envName
+    def attach_to_environment(self, environment: "JelasticEnvironment") -> None:
+        """
+        Set the parent environment, if nodeGroup is correctly setup
+        """
+        # Make sure the parent also has this nodeGroup listed
+        if hasattr(self, "nodeGroupType"):
+            self._parent = environment
+
+            environment.attach_node_group(self)
+
+            # Read-only attributes
+            self._envName = self._parent.envName
 
     def update_from_env_dict(self, node_group_from_env: Dict[str, Any]) -> None:
         """
@@ -311,7 +334,7 @@ class JelasticNodeGroup(_JelasticObject):
         # Allow exploration of the returned object, but don't act on it.
         self._node_group = node_group_from_env
 
-        self._nodeGroup = next(
+        self._nodeGroupType = next(
             (ng for ng in self.NodeGroupType if ng.value == self._node_group["name"]),
         )
 
@@ -332,9 +355,9 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Check if we can update to API, or raise
         """
-        if not hasattr(self, "envName") or not hasattr(self, "nodeGroup"):
+        if not hasattr(self, "envName") or not hasattr(self, "nodeGroupType"):
             raise JelasticObjectException(
-                "Cannot update to API, use set_environment() before saving!"
+                "Cannot update to API, use attach_to_environment() before saving!"
             )
 
     def __init__(
@@ -342,7 +365,7 @@ class JelasticNodeGroup(_JelasticObject):
         *,
         parent: "JelasticEnvironment" = None,
         node_group_from_env: Dict[str, Any] = None,
-        nodeGroup: NodeGroupType = None,
+        nodeGroupType: NodeGroupType = None,
     ) -> None:
         """
         Construct a JelasticNodeGroup from the outer data
@@ -353,16 +376,16 @@ class JelasticNodeGroup(_JelasticObject):
         self._displayName = ""
         self._isSLBAccessEnabled = False
 
-        if nodeGroup:
+        if nodeGroupType:
             # Construct a node Group out of the blue
-            self._nodeGroup = nodeGroup
+            self._nodeGroupType = nodeGroupType
 
-        if parent:
-            deprecation(
-                "NodeGroup.__init__(): Passing parent is deprecated; use set_environment instead",
-            )
-            self.set_environment(parent)
-            assert self._parent == parent
+            if parent:
+                deprecation(
+                    "NodeGroup.__init__(): Passing parent is deprecated; use attach_to_environment instead",
+                )
+                self.attach_to_environment(parent)
+                assert self._parent == parent
 
         if node_group_from_env:
             deprecation(
@@ -387,7 +410,7 @@ class JelasticNodeGroup(_JelasticObject):
             self.api._(
                 "Environment.Control.ApplyNodeGroupData",
                 envName=self.envName,
-                nodeGroup=self.nodeGroup.value,
+                nodeGroup=self.nodeGroupType.value,
                 data=json.dumps(data),
             )
             for k in data.keys():
@@ -409,7 +432,7 @@ class JelasticNodeGroup(_JelasticObject):
         """
         String representation
         """
-        return f"JelasticNodeGroup {self.nodeGroup.value}"
+        return f"JelasticNodeGroup {self.nodeGroupType.value}"
 
     # Jelastic-related utilites
     def read_file(self, path: str) -> str:
@@ -423,7 +446,7 @@ class JelasticNodeGroup(_JelasticObject):
         response = self.api._(
             "Environment.File.Read",
             envName=self.envName,
-            nodeGroup=self.nodeGroup.value,
+            nodeGroup=self.nodeGroupType.value,
             path=path,
         )
         return response["body"]
@@ -437,6 +460,6 @@ class JelasticNodeGroup(_JelasticObject):
         self.api._(
             "Environment.Control.RedeployContainersByGroup",
             envName=self.envName,
-            nodeGroup=self.nodeGroup.value,
+            nodeGroup=self.nodeGroupType.value,
             tag=docker_tag,
         )

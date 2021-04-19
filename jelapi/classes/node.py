@@ -73,11 +73,11 @@ class JelasticNode(_JelasticObject):
     flexibleCloudlets = _JelAttrInt()
     allowFlexibleCloudletsReduction = _JelAttrBool(checked_for_differences=False)
 
-    def set_node_group(self, node_group: "JelasticNodeGroup") -> None:
+    def attach_to_node_group(self, node_group: "JelasticNodeGroup") -> None:
         """
         Set the nodeGroup, with all accompanying things
         """
-        self._nodeGroup = node_group
+        node_group.append_node(self)
 
         # Read-only attributes
         try:
@@ -167,9 +167,9 @@ class JelasticNode(_JelasticObject):
 
         if node_group:
             deprecation(
-                "Node.__init__(): Passing node_group is deprecated; use set_node_group instead",
+                "Node.__init__(): Passing node_group is deprecated; use attach_to_node_group instead",
             )
-            self.set_node_group(node_group)
+            self.attach_to_node_group(node_group)
             assert self.nodeGroup == node_group
 
         if node_from_env:
@@ -241,7 +241,7 @@ class JelasticNode(_JelasticObject):
         """
         if not hasattr(self, "envName"):
             raise JelasticObjectException(
-                "Cannot update to API, use set_node_group() before saving!"
+                "Cannot update to API, use attach_to_node_group() before saving!"
             )
 
     def save_to_jelastic(self):

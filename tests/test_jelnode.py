@@ -5,16 +5,15 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
+from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticNodeFactory
+from jelapi.factories import JelasticNodeFactory, JelasticNodeGroupFactory
 
-from .utils import get_standard_env, get_standard_node, get_standard_node_group
+from .utils import get_standard_env, get_standard_node
 
 jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
-node_group = JelasticNodeGroup(
-    parent=jelenv, node_group_from_env=get_standard_node_group()
-)
+node_group = JelasticNodeGroupFactory()
+node_group.attach_to_environment(jelenv)
 
 
 def test_JelasticNode_simple_load():
@@ -148,7 +147,7 @@ def test_JelasticNode_cannot_be_api_updated_without_node_group():
         node.raise_unless_can_update_to_api()
 
     # Setting the node_group fixes that
-    node.set_node_group(node_group=node_group)
+    node.attach_to_node_group(node_group=node_group)
     node.raise_unless_can_update_to_api()
 
 
@@ -158,7 +157,7 @@ def test_JelasticNode_set_cloudlets():
     """
     jelapic()._ = Mock()
     node = JelasticNodeFactory()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
     node.fixedCloudlets = 3
     node.save()
     jelapic()._.assert_called_once()
@@ -169,7 +168,7 @@ def test_JelasticNode_cannot_reduce_flexibleCloudlets():
     Reducing the flexible cloudlets cannot be done without setting the allowed flag
     """
     node = JelasticNodeFactory()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
     # 8 came from API
     node._from_api["flexibleCloudlets"] = 8
 
@@ -190,7 +189,7 @@ def test_JelasticNode_envVars_works_but_takes_from_node_group():
     node_group._envVars = {"TEST": "example.com"}
 
     node = JelasticNodeFactory()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
 
     assert "TEST" in node.envVars
     assert node.envVars["TEST"] == "example.com"
@@ -210,7 +209,7 @@ def test_JelasticNode_envVars_raises_if_env_is_not_running():
         node_group_local._parent = jelenv_local
 
         node = JelasticNodeFactory()
-        node.set_node_group(node_group_local)
+        node.attach_to_node_group(node_group_local)
 
         jelapic()._ = Mock(
             return_value={"object": {"VAR": "value"}},
@@ -256,7 +255,7 @@ def test_JelasticNode_exec_commands():
     We can launch multiple commands in sequence in nodes
     """
     node = JelasticNode()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
     node.update_from_env_dict(get_standard_node())
 
     jelapic()._ = Mock(
@@ -292,7 +291,7 @@ def test_JelasticNode_exec_command():
     We can launch a single command in a node
     """
     node = JelasticNodeFactory()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
 
     jelapic()._ = Mock(
         return_value={
@@ -320,7 +319,7 @@ def test_JelasticNode_read_file():
     We can gather a single file in a node
     """
     node = JelasticNodeFactory()
-    node.set_node_group(node_group)
+    node.attach_to_node_group(node_group)
 
     jelapic()._ = Mock(
         return_value={

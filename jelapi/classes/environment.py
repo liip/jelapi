@@ -87,6 +87,13 @@ class JelasticEnvironment(_JelasticObject):
             for info in response["infos"]
         }
 
+    def attach_node_group(self, node_group: JelasticNodeGroup) -> None:
+        """
+        Make sure a node_group is attached correctly to that Environment
+        """
+        self.nodeGroups[node_group.nodeGroupType.value] = node_group
+        node_group._parent = self
+
     def _update_from_getEnvInfo(
         self,
         jelastic_env: Dict[str, Any],
@@ -117,28 +124,26 @@ class JelasticEnvironment(_JelasticObject):
         self.extdomains = self._env["extdomains"]
 
         self.envGroups = env_groups if env_groups else []
-        nodeGroupsList = (
-            [
-                JelasticNodeGroup(parent=self, node_group_from_env=node_group)
-                for node_group in node_groups
-            ]
-            if node_groups
-            else []
-        )
-        self.nodeGroups = {ng.nodeGroup.value: ng for ng in nodeGroupsList}
+
+        if node_groups:
+            for node_group_from_env in node_groups:
+                node_group = JelasticNodeGroup()
+                node_group.update_from_env_dict(node_group_from_env=node_group_from_env)
+                node_group.attach_to_environment(self)
 
         # Now add nodes in the nodeGroup
         if nodes:
-            for node in nodes:
-                if node["nodeGroup"] not in self.nodeGroups:
+            for node_dict in nodes:
+                if node_dict["nodeGroup"] not in self.nodeGroups:
                     raise JelasticObjectException(
                         "Environment got a node outside of one of its nodeGroups"
                     )
 
-                node_group = self.nodeGroups[node["nodeGroup"]]
-                jelnode = JelasticNode(node_group=node_group, node_from_env=node)
+                node_group = self.nodeGroups[node_dict["nodeGroup"]]
+                jelnode = JelasticNode()
+                jelnode.update_from_env_dict(node_from_env=node_dict)
+                jelnode.attach_to_node_group(node_group)
 
-                node_group.nodes.append(jelnode)
                 node_group.copy_self_as_from_api("nodes")
 
         # Copy our attributes as it came from API
@@ -156,6 +161,8 @@ class JelasticEnvironment(_JelasticObject):
         Construct a JelasticEnvironment from various data sources
         """
         super().__init__()
+        if not hasattr(self, "nodeGroup"):
+            self.nodeGroups = {}
         self._update_from_getEnvInfo(jelastic_env, env_groups, node_groups, nodes)
 
     def refresh_from_api(self) -> None:

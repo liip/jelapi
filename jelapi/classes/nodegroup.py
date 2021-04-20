@@ -235,7 +235,7 @@ class JelasticNodeGroup(_JelasticObject):
             # Delete the obsolete containerVolumes
             toremove = [
                 cv
-                for cv in self._from_api["_containerVolumes"]
+                for cv in self._from_api.get("_containerVolumes", [])
                 if cv not in self.containerVolumes
             ]
             if len(toremove) > 0:
@@ -250,7 +250,7 @@ class JelasticNodeGroup(_JelasticObject):
             toadd = [
                 cv
                 for cv in self.containerVolumes
-                if cv not in self._from_api["_containerVolumes"]
+                if cv not in self._from_api.get("_containerVolumes", [])
             ]
             if len(toadd) > 0:
                 self.api._(

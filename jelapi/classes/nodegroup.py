@@ -425,7 +425,9 @@ class JelasticNodeGroup(_JelasticObject):
         #  Prepare data attr for ApplyData call
         data = {}
         for attr in ["displayName", "isSLBAccessEnabled"]:
-            if self._from_api[attr] != getattr(self, attr):
+            if attr not in self._from_api or self._from_api[attr] != getattr(
+                self, attr
+            ):
                 data[attr] = getattr(self, attr)
         if len(data) > 0:
             # Jelastic API 5.9

@@ -279,7 +279,8 @@ def test_JelasticNodeGroup_get_mountPoints():
     jelenv = JelasticEnvironmentFactory()
     node_group = jelenv.nodeGroups["cp"]
 
-    assert not hasattr(node_group, "_mountPoints")
+    assert node_group._mountPoints_need_fetching
+
     jelapic()._ = Mock(
         return_value={
             "array": [
@@ -436,6 +437,7 @@ def test_JelasticNodeGroup_containerVolumes():
     ng = JelasticNodeGroupFactory()
     ng.attach_to_environment(jelenv)
 
+    ng._mountPoints_need_fetching = False
     ng._mountPoints = []
 
     jelapic()._ = Mock(
@@ -452,7 +454,9 @@ def test_JelasticNodeGroup_containerVolumes_add_remove():
     ng = JelasticNodeGroupFactory()
     ng.attach_to_environment(jelenv)
 
+    ng._mountPoints_need_fetching = False
     ng._mountPoints = []
+
     ng.copy_self_as_from_api("_mountPoints")
     ng._containerVolumes = ["/tmp/volume1", "/tmp/volume2"]
     ng.copy_self_as_from_api("_containerVolumes")

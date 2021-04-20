@@ -50,10 +50,14 @@ class JelasticNodeGroup(_JelasticObject):
     _mountPoints = _JelAttrList(
         checked_for_differences=False
     )  # this is the JelAttr, use mountPoints to access them through lazy loading
+    # Boolean flag to help lazy-load
+    _mountPoints_need_fetching = _JelAttrBool(checked_for_differences=False)
 
     _containerVolumes = (
         _JelAttrList()
     )  # this is the JelAttr, use containerVolumes to access them through lazy loading
+    # Boolean flag to help lazy-load
+    _containerVolumes_need_fetching = _JelAttrBool(checked_for_differences=False)
 
     _links = (
         _JelAttrDict()
@@ -132,19 +136,19 @@ class JelasticNodeGroup(_JelasticObject):
         #     raise JelasticObjectException(
         #         "envVars cannot be gathered on environments not running"
         #     )
-        if not hasattr(self, "_mountPoints"):
+        if self._mountPoints_need_fetching:
             response = self.api._(
                 "Environment.File.GetMountPoints",
                 envName=self.envName,
                 nodeGroup=self.nodeGroupType.value,
             )
 
-            self._mountPoints = []
             for mpdict in response["array"]:
                 mp = JelasticMountPoint()
                 mp.attach_to_node_group(self)
                 mp.update_from_env_dict(mpdict)
 
+            self._mountPoints_need_fetching = False
             self.copy_self_as_from_api("_mountPoints")
         return self._mountPoints
 
@@ -171,7 +175,7 @@ class JelasticNodeGroup(_JelasticObject):
         Verify that the mount points have not changed, apply the changes
         """
         # Only check them if they were accessed
-        if hasattr(self, "_mountPoints"):
+        if not self._mountPoints_need_fetching:
             mountpaths = [m.path for m in self.mountPoints]
             if len(set(mountpaths)) != len(mountpaths):
                 raise JelasticObjectException(
@@ -200,7 +204,7 @@ class JelasticNodeGroup(_JelasticObject):
         """
         self.raise_unless_can_call_api()
 
-        if not hasattr(self, "_containerVolumes"):
+        if self._containerVolumes_need_fetching:
             response = self.api._(
                 "Environment.Control.GetContainerVolumesByGroup",
                 envName=self.envName,
@@ -212,6 +216,7 @@ class JelasticNodeGroup(_JelasticObject):
                 for cv in response["object"]
                 if cv not in [mp.path for mp in self.mountPoints]
             ]
+            self._containerVolumes_need_fetching = False
             self.copy_self_as_from_api("_containerVolumes")
         return self._containerVolumes
 
@@ -222,7 +227,7 @@ class JelasticNodeGroup(_JelasticObject):
         self.raise_unless_can_call_api()
 
         # Only check them if they were accessed
-        if hasattr(self, "_containerVolumes"):
+        if not self._containerVolumes_need_fetching:
             if len(set(self.containerVolumes)) != len(self.containerVolumes):
                 raise JelasticObjectException(
                     f"Duplicate Container Volumes won't work {','.join(self.containerVolumes)}"
@@ -322,8 +327,6 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Called from mount_point, allow to append a mountPoint to our list
         """
-        if not hasattr(self, "_mountPoints"):
-            self._mountPoints = []
         self._mountPoints.append(mount_point)
         mount_point._nodeGroup = self
 
@@ -357,6 +360,10 @@ class JelasticNodeGroup(_JelasticObject):
         )  # Apparently optional
         self._isSLBAccessEnabled = self._node_group.get("isSLBAccessEnabled")
 
+        # These two need fetching now (it was from API)
+        self._mountPoints_need_fetching = True
+        self._containerVolumes_need_fetching = True
+
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
@@ -386,6 +393,10 @@ class JelasticNodeGroup(_JelasticObject):
         self._isSLBAccessEnabled = False
 
         self.nodes = []
+        self._mountPoints = []
+        self._mountPoints_need_fetching = False
+        self._containerVolumes = []
+        self._containerVolumes_need_fetching = False
 
         if nodeGroupType:
             # Construct a node Group out of the blue

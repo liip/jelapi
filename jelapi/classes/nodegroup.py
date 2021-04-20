@@ -178,10 +178,11 @@ class JelasticNodeGroup(_JelasticObject):
                     f"Duplicate MountPoints won't work {','.join(mountpaths)}"
                 )
             # Delete the obsolete mountpaths
-            for mp in self._from_api["_mountPoints"]:
-                if mp.path not in mountpaths:
-                    mp.del_from_api()
-                mp.save()
+            if "_mountPoints" in self._from_api:
+                for mp in self._from_api["_mountPoints"]:
+                    if mp.path not in mountpaths:
+                        mp.del_from_api()
+                    mp.save()
 
             # Create the new mountpaths
             for mp in self.mountPoints:

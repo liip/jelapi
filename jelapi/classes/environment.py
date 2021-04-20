@@ -340,7 +340,6 @@ class JelasticEnvironment(_JelasticObject):
             )
             # Consider some stuff as saved to API
             for ng in self.nodeGroups.values():
-                ng.copy_self_as_from_api()
                 for n in ng.nodes:
                     n.copy_self_as_from_api("fixedCloudlets")
                     n.copy_self_as_from_api("flexibleCloudlets")

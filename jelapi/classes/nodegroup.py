@@ -357,10 +357,6 @@ class JelasticNodeGroup(_JelasticObject):
         )  # Apparently optional
         self._isSLBAccessEnabled = self._node_group.get("isSLBAccessEnabled")
 
-        # Start without nodes, they're added after init
-        if not getattr(self, "nodes", False):
-            self.nodes = []
-
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 
@@ -388,6 +384,8 @@ class JelasticNodeGroup(_JelasticObject):
         # Instantiate some empty, or default
         self._displayName = ""
         self._isSLBAccessEnabled = False
+
+        self.nodes = []
 
         if nodeGroupType:
             # Construct a node Group out of the blue

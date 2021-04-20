@@ -329,6 +329,8 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
         return_value={"array": []},
     )
     assert cp_node_group.mountPoints == []
+    assert not cp_node_group._mountPoints_need_fetching
+
     # As we fetched, to append
     jelapic()._.assert_called_once()
 
@@ -339,12 +341,17 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
         sourceNode=storage_node_group.nodes[0],
     )
     jmp.attach_to_node_group(cp_node_group)
+    assert not jmp.is_from_api
 
     assert len(cp_node_group.mountPoints) == 1
 
     jelapic()._.reset_mock()
     cp_node_group.save()
     jelapic()._.assert_called_once()
+    # It made it "from API"
+    assert jmp.is_from_api
+    assert len(cp_node_group._from_api["_mountPoints"]) == 1
+    assert cp_node_group._from_api["_mountPoints"][0].is_from_api
 
     # Add another one, with the same path
     jmp2 = JelasticMountPoint(
@@ -354,14 +361,19 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
         sourceNode=storage_node_group.nodes[0],
     )
     jmp2.attach_to_node_group(cp_node_group)
+    assert not jmp2.is_from_api
 
     with pytest.raises(JelasticObjectException):
         cp_node_group.save()
 
     # Remove this one, sorry.
     del cp_node_group.mountPoints[1]
+    assert len(cp_node_group.mountPoints) == 1
     # Remove the first one too
     del cp_node_group.mountPoints[0]
+    assert len(cp_node_group.mountPoints) == 0
+    assert len(cp_node_group._from_api["_mountPoints"]) == 1
+    assert cp_node_group._from_api["_mountPoints"][0].is_from_api
 
     # So the save will also remove the first one
     jelapic()._.reset_mock()

@@ -48,7 +48,6 @@ class JelasticMountPoint(_JelasticVolume):
                 f"Didn't find node id {source_node_id} in environment"
             )
 
-        self.is_new = False
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
 

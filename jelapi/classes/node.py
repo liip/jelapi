@@ -179,6 +179,15 @@ class JelasticNode(_JelasticObject):
             self.update_from_env_dict(node_from_env=node_from_env)
             assert self.is_from_api
 
+    def deepcopy_away_from_api(self):
+        """
+        Mark as not from API (do whatever's needed)
+        """
+        try:
+            delattr(self, "_id")
+        except AttributeError:
+            pass
+
     @property
     def links(self) -> List[Dict[str, Any]]:
         """

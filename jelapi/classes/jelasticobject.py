@@ -112,6 +112,26 @@ class _JelasticObject(ABC):
         """
         return self._logger.log(logging.DEBUG - 1, msg, *args, **kwargs)
 
+    def __deepcopy__(self, memo):
+        """
+        When copying the object, mark it as not from the API
+        """
+        # See https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
+        cls = self.__class__
+        cp = cls.__new__(cls)
+        memo[id(self)] = cp
+        for k, v in self.__dict__.items():
+            setattr(cp, k, deepcopy(v, memo))
+
+        cp._from_api = []
+        cp.deepcopy_away_from_api()
+        return cp
+
+    def deepcopy_away_from_api(self):
+        """
+        Mark as not from API (do whatever's needed)
+        """
+
     def copy_self_as_from_api(self, only_this_key: str = None) -> None:
         """
         Store a copy of ourselves, as it was from API

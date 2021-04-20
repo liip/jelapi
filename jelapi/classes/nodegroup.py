@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List
 
@@ -182,11 +183,10 @@ class JelasticNodeGroup(_JelasticObject):
                     f"Duplicate MountPoints won't work {','.join(mountpaths)}"
                 )
             # Delete the obsolete mountpaths
-            if "_mountPoints" in self._from_api:
-                for mp in self._from_api["_mountPoints"]:
-                    if mp.path not in mountpaths:
-                        mp.del_from_api()
-                    mp.save()
+            for mp in self._from_api.get("_mountPoints", []):
+                if mp.path not in mountpaths:
+                    mp.del_from_api()
+                mp.save()
 
             # Create the new mountpaths
             for mp in self.mountPoints:
@@ -196,6 +196,8 @@ class JelasticNodeGroup(_JelasticObject):
                 assert not mp.differs_from_api()
 
             self.copy_self_as_from_api("_mountPoints")
+            for mp in self._from_api["_mountPoints"]:
+                mp.copy_self_as_from_api()
 
     @property
     def containerVolumes(self) -> List[str]:
@@ -415,6 +417,15 @@ class JelasticNodeGroup(_JelasticObject):
             )
             self.update_from_env_dict(node_group_from_env=node_group_from_env)
             assert self.is_from_api
+
+    def deepcopy_away_from_api(self):
+        """
+        Mark as not from API (do whatever's needed)
+        """
+        self._mountPoints_need_fetching = False
+        self._mountPoints = deepcopy(self._mountPoints)
+        self._containerVolumes_need_fetching = False
+        self._containerVolumes = deepcopy(self._containerVolumes)
 
     def _apply_data(self):
         """

@@ -200,13 +200,13 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API_twice(
 
     jelenv = JelasticEnvironmentFactory()
     jelenv.displayName = "different displayName"
-    jelenv.save()
+    jelenv._save_displayName()
     jelapic()._.assert_called()
 
     jelapic()._.reset_mock()
 
     # A second save should not call the API
-    jelenv.save()
+    jelenv._save_displayName()
     jelapic()._.assert_not_called()
 
 
@@ -550,7 +550,11 @@ def test_JelasticEnvironment_nodes():
     assert jelenv.differs_from_api()
 
     jelapic()._ = Mock(
-        return_value={"env": get_standard_env(), "envGroups": []},
+        return_value={
+            "env": get_standard_env(),
+            "envGroups": [],
+            "nodes": [get_standard_node()],
+        },
     )
     jelenv.save()
     assert not jelenv.differs_from_api()
@@ -645,14 +649,21 @@ def test_JelasticEnvironment_add_node_group():
     Test saving of nodeGroups' updates, adding one
     """
     j = JelasticEnvironmentFactory()
-    j.nodeGroups["nosql"] = JelasticNodeGroupFactory(
-        nodeGroupType=JelasticNodeGroup.NodeGroupType.NOSQL_DATABASE
-    )
+    ng = JelasticNodeGroup(nodeGroupType=JelasticNodeGroup.NodeGroupType.NOSQL_DATABASE)
+    assert not ng.is_from_api
+    assert ng._envVars == {}
+    ng.attach_to_environment(j)
+    ng.raise_unless_can_call_api()
+
+    n = JelasticNode(nodeType=JelasticNode.NodeType.DOCKER)
+    assert not n.is_from_api
+    n.attach_to_node_group(ng)
+
     assert j.differs_from_api()
 
     jelapic()._ = Mock(
-        return_value={"env": get_standard_env(), "envGroups": []},
+        return_value={"response": {"env": get_standard_env(), "envGroups": []}},
     )
-    j.save()
+    j._save_nodeGroups()
     # Called twice, once for saving, once for refresh
     jelapic()._.assert_called()

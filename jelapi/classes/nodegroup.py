@@ -106,7 +106,7 @@ class JelasticNodeGroup(_JelasticObject):
                     "envVars cannot be saved if not fetched first (no blind set)"
                 )
         else:
-            if len(self._envVars) == 0:
+            if len(self._envVars) == 0 and len(self._from_api["_envVars"]) > 0:
                 raise JelasticObjectException(
                     "envVars cannot be set to empty (no wipe out)"
                 )
@@ -293,7 +293,7 @@ class JelasticNodeGroup(_JelasticObject):
             if hasattr(node0, "docker_registry"):
                 topology["registry"] = node0.docker_registry
 
-            if node0.docker_image:
+            if hasattr(node0, "docker_image") and node0.docker_image:
                 topology["image"] = node0.docker_image
 
         # The important links

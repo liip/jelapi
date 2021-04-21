@@ -121,7 +121,12 @@ def test_JelasticNodeGroup_envVars_raises_if_set_without_fetch():
     """
     node_group = JelasticNodeGroupFactory()
     node_group.attach_to_environment(jelenv)
+    # Make sure they never were fetched
+    node_group._envVars_need_fetching = True
     node_group._envVars = {"ID": "evil"}
+
+    assert node_group._envVars != node_group._from_api["_envVars"]
+
     with pytest.raises(JelasticObjectException):
         node_group.save()
 

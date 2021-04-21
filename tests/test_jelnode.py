@@ -190,6 +190,7 @@ def test_JelasticNode_envVars_works_but_takes_from_node_group():
     Getting the envVars gets us the nodeGroups'
     """
     node_group._envVars = {"TEST": "example.com"}
+    node_group._envVars_need_fetching = False
 
     node = JelasticNodeFactory()
     node.attach_to_node_group(node_group)

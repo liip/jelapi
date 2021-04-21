@@ -124,12 +124,25 @@ class _JelasticObject(ABC):
             setattr(cp, k, deepcopy(v, memo))
 
         cp._from_api = []
-        cp.deepcopy_away_from_api()
         return cp
 
-    def deepcopy_away_from_api(self):
+    def archive_from_api(self):
         """
-        Mark as not from API (do whatever's needed)
+        Get a deepcopy of thyself, cut from API
+        """
+        self.before_archive_from_api()
+        cp = deepcopy(self)
+        cp.after_archive_from_api()
+        return cp
+
+    def before_archive_from_api(self):
+        """
+        Do what's needed after deepcopying away from API
+        """
+
+    def after_archive_from_api(self):
+        """
+        Do what's needed after deepcopying away from API
         """
 
     def copy_self_as_from_api(self, only_this_key: str = None) -> None:
@@ -200,6 +213,13 @@ class _JelasticObject(ABC):
                         )
                         return True
                 elif isinstance(descriptor_class, _JelAttrList):
+                    self._tracelog(f"Check if list {k} is in _from_api")
+                    if k not in self._from_api:
+                        self._tracelog(
+                            f"differs_from API because {k} is not in _from_api"
+                        )
+                        return True
+
                     self._tracelog(
                         f"Check if list {k} differs from API; {v} vs {self._from_api[k]}"
                     )

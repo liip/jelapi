@@ -1,3 +1,4 @@
+from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
 from json import dumps as jsondumps
@@ -152,6 +153,9 @@ class JelasticEnvironment(_JelasticObject):
             raise JelasticObjectException(
                 "update_nodes: envName unset; call update_from_env_dict() first !"
             )
+
+        for ng in self.nodeGroups.values():
+            ng.nodes = []
 
         # Now add nodes in the nodeGroup
         for node_dict in nodes:
@@ -332,17 +336,37 @@ class JelasticEnvironment(_JelasticObject):
             if len(self.nodeGroups) == 0:
                 raise JelasticObjectException("Wipeout of nodeGroups not allowed")
 
-            self.api._(
+            # Backup the stuff we want to keep after topology change
+            wanted_node_groups = deepcopy(self.nodeGroups)
+
+            apiresponse = self.api._(
                 "Environment.Control.ChangeTopology",
                 envName=self.envName,
                 env=jsondumps(self.get_topology()),
                 nodes=jsondumps([ng.get_topology() for ng in self.nodeGroups.values()]),
             )
-            # Consider some stuff as saved to API
-            for ng in self.nodeGroups.values():
+            response = apiresponse["response"]
+
+            self.update_from_env_dict(response["env"])
+            self.update_env_groups_from_info(response.get("envGroups", []))
+            self.nodeGroups = wanted_node_groups
+            self.update_nodes_from_info(response.get("nodes", []))
+
+            for k, ng in self.nodeGroups.items():
                 for n in ng.nodes:
-                    n.copy_self_as_from_api("fixedCloudlets")
-                    n.copy_self_as_from_api("flexibleCloudlets")
+                    n.copy_self_as_from_api()
+
+                # Complex ones
+                ng.copy_self_as_from_api("_envVars")
+                ng.copy_self_as_from_api("_links")
+                ng.copy_self_as_from_api("_containerVolumes")
+
+                # Bare attributes
+                ng.copy_self_as_from_api("displayName")
+                ng.copy_self_as_from_api("isSLBAccessEnabled")
+
+                # Make sure these get saved afterwards
+                ng._from_api["_mountPoints"] = []
 
         for ng in self.nodeGroups.values():
             ng.save()

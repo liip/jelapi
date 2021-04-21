@@ -47,6 +47,7 @@ class JelasticNodeGroup(_JelasticObject):
     _envVars = (
         _JelAttrDict()
     )  # this is the JelAttr, use envVars to access them through lazy loading
+    _envVars_need_fetching = _JelAttrBool(checked_for_differences=False)
 
     _mountPoints = _JelAttrList(
         checked_for_differences=False
@@ -81,7 +82,7 @@ class JelasticNodeGroup(_JelasticObject):
             raise JelasticObjectException(
                 "envVars cannot be gathered on environments not running"
             )
-        if not hasattr(self, "_envVars"):
+        if self._envVars_need_fetching:
             self.raise_unless_can_call_api()
 
             response = self.api._(
@@ -90,6 +91,7 @@ class JelasticNodeGroup(_JelasticObject):
                 nodeGroup=self.nodeGroupType.value,
             )
             self._envVars = response["object"]
+            self._envVars_need_fetching = False
             self.copy_self_as_from_api("_envVars")
         return self._envVars
 
@@ -98,11 +100,12 @@ class JelasticNodeGroup(_JelasticObject):
         Set the modified envVars
         """
         # Only set them if they were fetched first
-        if hasattr(self, "_envVars"):
-            if "_envVars" not in self._from_api:
+        if self._envVars_need_fetching:
+            if self._envVars != {}:
                 raise JelasticObjectException(
                     "envVars cannot be saved if not fetched first (no blind set)"
                 )
+        else:
             if len(self._envVars) == 0:
                 raise JelasticObjectException(
                     "envVars cannot be set to empty (no wipe out)"
@@ -195,9 +198,12 @@ class JelasticNodeGroup(_JelasticObject):
                 mp.save()
                 assert not mp.differs_from_api()
 
-            self.copy_self_as_from_api("_mountPoints")
-            for mp in self._from_api["_mountPoints"]:
+            for mp in self.mountPoints:
                 mp.copy_self_as_from_api()
+
+        self.copy_self_as_from_api("_mountPoints")
+        for mp in self._from_api.get("_mountPoints", []):
+            mp.copy_self_as_from_api()
 
     @property
     def containerVolumes(self) -> List[str]:
@@ -285,28 +291,50 @@ class JelasticNodeGroup(_JelasticObject):
 
         if node0.nodeType == JelasticNode.NodeType.DOCKER:
             if hasattr(node0, "docker_registry"):
-                topology["registry"] = {"url": node0.docker_registry["url"]}
-                topology["docker"] = {
-                    "registry": node0.docker_registry,
-                    "image": node0.docker_image,
-                }
+                topology["registry"] = node0.docker_registry
 
-            # The important links
-            topology["links"] = []
-            for key, ngtype in self.links.items():
-                if not isinstance(ngtype, self.NodeGroupType):
-                    raise TypeError(
-                        f"Links' values must be of type NodeGroupType ({ngtype})"
-                    )
-                # Find the correct node_group value ("storage" or "sqldb") in the parent's
-                node_group = next(
-                    (
-                        ng.nodeGroupType.value
-                        for ng in self._parent.nodeGroups.values()
-                        if ng.nodeGroupType == ngtype
-                    ),
+            if node0.docker_image:
+                topology["image"] = node0.docker_image
+
+        # The important links
+        links = []
+        for key, ngtype in self.links.items():
+            if not isinstance(ngtype, self.NodeGroupType):
+                raise TypeError(
+                    f"Links' values must be of type NodeGroupType ({ngtype})"
                 )
-                topology["links"].append(f"{node_group}:{key}")
+            # Find the correct node_group value ("storage" or "sqldb") in the parent's
+            node_group = next(
+                (
+                    ng.nodeGroupType.value
+                    for ng in self._parent.nodeGroups.values()
+                    if ng.nodeGroupType == ngtype
+                ),
+            )
+            links.append(f"{node_group}:{key}")
+
+        if links:
+            topology["links"] = links
+
+        # The environment variables, if we got them.
+        if not self._envVars_need_fetching:
+            # Certain keys we're sure to not want to enforce to Jelasitc
+            forbidden_keys = [
+                "MASTER_ID",
+                "MASTER_HOST",
+                "DOCKER_EXPOSED_PORT",
+                "PATH",
+            ]
+
+            # Exclude the keys that start with a link name
+            env = {
+                k: v
+                for k, v in self._envVars.items()
+                if not any([k.startswith(linkkey) for linkkey in self.links.keys()])
+                and not any([k == forbidden_key for forbidden_key in forbidden_keys])
+            }
+            if env:
+                topology["env"] = env
         return topology
 
     def needs_topology_update(self):
@@ -329,6 +357,10 @@ class JelasticNodeGroup(_JelasticObject):
         """
         Called from mount_point, allow to append a mountPoint to our list
         """
+        # Assume we want to force this one
+        for mp in self._mountPoints:
+            if mp.path == mount_point.path:
+                self._mountPoints.remove(mp)
         self._mountPoints.append(mount_point)
         mount_point._nodeGroup = self
 
@@ -365,6 +397,7 @@ class JelasticNodeGroup(_JelasticObject):
         # These two need fetching now (it was from API)
         self._mountPoints_need_fetching = True
         self._containerVolumes_need_fetching = True
+        self._envVars_need_fetching = True
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -400,6 +433,9 @@ class JelasticNodeGroup(_JelasticObject):
         self._containerVolumes = []
         self._containerVolumes_need_fetching = False
 
+        self._envVars = {}
+        self._envVars_need_fetching = False
+
         if nodeGroupType:
             # Construct a node Group out of the blue
             self._nodeGroupType = nodeGroupType
@@ -418,14 +454,13 @@ class JelasticNodeGroup(_JelasticObject):
             self.update_from_env_dict(node_group_from_env=node_group_from_env)
             assert self.is_from_api
 
-    def deepcopy_away_from_api(self):
+    def before_archive_from_api(self):
         """
-        Mark as not from API (do whatever's needed)
+        When archiving from API, fetch mountPoints, containerVolumes and envVars
         """
-        self._mountPoints_need_fetching = False
-        self._mountPoints = deepcopy(self._mountPoints)
-        self._containerVolumes_need_fetching = False
-        self._containerVolumes = deepcopy(self._containerVolumes)
+        self.mountPoints
+        self.containerVolumes
+        self.envVars
 
     def _apply_data(self):
         """

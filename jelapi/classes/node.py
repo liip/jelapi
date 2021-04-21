@@ -37,7 +37,7 @@ class JelasticNode(_JelasticObject):
 
     # Not a real attribute, at least not synced to API
     docker_registry: Dict
-    docker_image: str
+    docker_image = _JelAttrStr()
 
     # TODO: make the ones that make sense as RW attributes
     diskIoLimit = _JelAttrInt(read_only=True)
@@ -133,11 +133,18 @@ class JelasticNode(_JelasticObject):
             "url",
             "version",
         ]:
-            setattr(self, f"_{attr}", self._node[attr])
+            if attr in self._node:
+                setattr(self, f"_{attr}", self._node[attr])
 
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:
             setattr(self, attr, self._node[attr])
+
+        if self.nodeType == self.NodeType.DOCKER:
+            try:
+                self.docker_image = self._node["customitem"]["dockerName"]
+            except KeyError:
+                self.docker_image = ""
 
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
@@ -178,15 +185,6 @@ class JelasticNode(_JelasticObject):
             )
             self.update_from_env_dict(node_from_env=node_from_env)
             assert self.is_from_api
-
-    def deepcopy_away_from_api(self):
-        """
-        Mark as not from API (do whatever's needed)
-        """
-        try:
-            delattr(self, "_id")
-        except AttributeError:
-            pass
 
     @property
     def links(self) -> List[Dict[str, Any]]:

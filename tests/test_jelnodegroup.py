@@ -368,13 +368,15 @@ def test_JelasticNodeGroup_add_remove_mountPoints():
     jmp2.attach_to_node_group(cp_node_group)
     assert not jmp2.is_from_api
 
-    with pytest.raises(JelasticObjectException):
-        cp_node_group.save()
-
-    # Remove this one, sorry.
-    del cp_node_group.mountPoints[1]
+    # It will override the previous one, so…
     assert len(cp_node_group.mountPoints) == 1
-    # Remove the first one too
+
+    # Saving shall work
+    jelapic()._.reset_mock()
+    cp_node_group.save()
+    jelapic()._.assert_called_once()
+
+    # Remove the only one
     del cp_node_group.mountPoints[0]
     assert len(cp_node_group.mountPoints) == 0
     assert len(cp_node_group._from_api["_mountPoints"]) == 1

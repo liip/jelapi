@@ -89,6 +89,21 @@ class JelasticEnvironment(_JelasticObject):
 
         return envs
 
+    def clone(self, cloned_environment_name: str) -> "JelasticEnvironment":
+        """
+        Clone an environment, and return a new JelasticEnvironment matching the new one
+        """
+        if len(cloned_environment_name) > 33:
+            raise JelasticObjectException(
+                "New environments' names cannot be longer than 33 characters"
+            )
+        self.api._(
+            "Environment.Control.CloneEnv",
+            srcEnvName=self.envName,
+            dstEnvName=cloned_environment_name,
+        )
+        return JelasticEnvironment.get(envName=cloned_environment_name)
+
     def attach_node_group(self, node_group: JelasticNodeGroup) -> None:
         """
         Make sure a node_group is attached correctly to that Environment

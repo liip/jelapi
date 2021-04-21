@@ -673,3 +673,26 @@ def test_JelasticEnvironment_add_node_group():
     j._save_topology_and_node_groups()
     # Called twice, once for saving, once for refresh
     jelapic()._.assert_called()
+
+
+def test_JelEnv_cannot_clone_too_long():
+    j = JelasticEnvironmentFactory()
+    with pytest.raises(JelasticObjectException):
+        # 34 chars is too long
+        j.clone("abcdefghijklmnopqrstuvwxyz01234567")
+
+
+def test_JelEnv_can_clone():
+    j = JelasticEnvironmentFactory()
+    # 33 chars is OK
+    jelapic()._ = Mock(
+        return_value={
+            "env": get_standard_env(),
+            "envGroups": [],
+            "nodes": [get_standard_node()],
+            "nodeGroups": get_standard_node_groups(),
+        },
+    )
+    j.clone("abcdefghijklmnopqrstuvwxyz0123456")
+    # Called twice actually
+    jelapic()._.assert_called()

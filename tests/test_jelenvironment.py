@@ -6,7 +6,7 @@ import pytest
 from jelapi import api_connector as jelapic
 from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
+from jelapi.factories import JelasticEnvironmentFactory
 
 from .utils import get_standard_env, get_standard_node, get_standard_node_groups
 
@@ -662,7 +662,13 @@ def test_JelasticEnvironment_add_node_group():
     assert j.differs_from_api()
 
     jelapic()._ = Mock(
-        return_value={"response": {"env": get_standard_env(), "envGroups": []}},
+        return_value={
+            "response": {
+                "env": get_standard_env(),
+                "envGroups": [],
+                "nodes": [get_standard_node()],
+            }
+        },
     )
     j._save_nodeGroups()
     # Called twice, once for saving, once for refresh

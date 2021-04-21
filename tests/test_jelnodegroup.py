@@ -528,6 +528,9 @@ def test_JelasticNodeGroup_topology():
     cp_node_group.nodes[0].docker_image = "example_image:tag"
     assert len(cp_node_group.nodes) > 0
 
+    cp_node_group._envVars_need_fetching = False
+    cp_node_group.envVars["HOSTNAME"] = "https://example.com"
+
     # Now get it
     topology = cp_node_group.get_topology()
     assert topology["count"] == len(cp_node_group.nodes)
@@ -537,3 +540,46 @@ def test_JelasticNodeGroup_topology():
     cp_node_group.links["BROKEN"] = "sqldb"
     with pytest.raises(TypeError):
         cp_node_group.get_topology()
+
+
+def test_JelasticNodeGroup_duplicate_mountPoints():
+    """
+    Test we can't save duplicated mount points
+    """
+    j = JelasticEnvironmentFactory()
+    cpng = j.nodeGroups["cp"]
+
+    # Assume they got fetched
+    cpng._mountPoints_need_fetching = False
+    # Attach one.
+    mount = JelasticMountPoint(
+        name="Test",
+        path="/srv",
+        sourceNode=j.nodeGroups["storage"].nodes[0],
+        sourcePath="/srv/src",
+    )
+    mount.attach_to_node_group(cpng)
+    assert len(cpng.mountPoints) == 1
+
+    # Now pretend to add another one, but cheat
+    cpng.mountPoints.append(mount)
+
+    with pytest.raises(JelasticObjectException):
+        cpng._save_mount_points()
+
+
+def test_JelasticNodeGroup_copy_from_api():
+    """
+    Can we copy a nodeGroup
+    """
+    j = JelasticEnvironmentFactory()
+    cpng = j.nodeGroups["cp"]
+
+    # Let's assume they were fetched
+    cpng._mountPoints_need_fetching = False
+    cpng._containerVolumes_need_fetching = False
+    cpng._envVars_need_fetching = False
+
+    assert cpng.is_from_api
+    cpng2 = cpng.archive_from_api()
+    assert not cpng2.is_from_api

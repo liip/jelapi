@@ -1,8 +1,10 @@
 from jelapi.classes import JelasticEnvironment, JelasticNodeGroup
 
 
-def get_standard_node_group():
-    return {"name": "cp"}
+def get_standard_node_group(
+    node_group_type: JelasticNodeGroup.NodeGroupType = JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER,
+):
+    return {"name": node_group_type.value}
 
 
 def get_standard_node_groups():
@@ -22,12 +24,17 @@ def get_standard_env(status=JelasticEnvironment.Status.RUNNING.value, extdomains
         "status": status,
         "extdomains": extdomains,
         "nodeGroups": get_standard_node_groups(),
+        "hardwareNodeGroup": "a_provider_specific_string",
+        "sslstate": True,
+        "ishaenabled": False,
     }
 
 
-def get_standard_node(fixed_cloudlets: int = 1, flexible_cloudlets: int = 1):
+def get_standard_node(
+    id: int = 987, fixed_cloudlets: int = 1, flexible_cloudlets: int = 1
+):
     return {
-        "id": 1,
+        "id": id,
         "fixedCloudlets": fixed_cloudlets,
         "flexibleCloudlets": flexible_cloudlets,
         "intIP": "192.0.2.1",
@@ -60,4 +67,13 @@ def get_standard_node(fixed_cloudlets: int = 1, flexible_cloudlets: int = 1):
         "status": 1,
         "type": "NATIVE",
         "version": "docker-tag",
+    }
+
+
+def get_standard_mount_point(source_node_id: int = 1):
+    return {
+        "name": "mount point name",
+        "path": "/tmp/test",
+        "sourcePath": "/tmp/sourcePath",
+        "sourceNodeId": source_node_id,
     }

@@ -1,11 +1,18 @@
+from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
 from json import dumps as jsondumps
 from typing import Any, Dict, List, Optional
 
-from ..exceptions import JelasticObjectException
+from ..exceptions import JelasticObjectException, deprecation
 from .jelasticobject import _JelasticAttribute as _JelAttr
-from .jelasticobject import _JelasticObject, _JelAttrDict, _JelAttrList, _JelAttrStr
+from .jelasticobject import (
+    _JelasticObject,
+    _JelAttrBool,
+    _JelAttrDict,
+    _JelAttrList,
+    _JelAttrStr,
+)
 from .node import JelasticNode
 from .nodegroup import JelasticNodeGroup
 
@@ -39,6 +46,9 @@ class JelasticEnvironment(_JelasticObject):
     domain = _JelAttrStr(read_only=True)
     extdomains = _JelAttrList()
     nodeGroups = _JelAttrDict(checked_for_differences=False)
+    ishaneabled = _JelAttrBool(read_only=True)
+    hardwareNodeGroup = _JelAttrStr(read_only=True)
+    sslstate = _JelAttrBool(read_only=True)
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -51,12 +61,12 @@ class JelasticEnvironment(_JelasticObject):
         response = jelapi_connector()._(
             "Environment.Control.GetEnvInfo", envName=envName
         )
-        return JelasticEnvironment(
-            jelastic_env=response["env"],
-            env_groups=response.get("envGroups", []),
-            node_groups=response.get("nodeGroups", []),
-            nodes=response.get("nodes", []),
-        )
+        j = JelasticEnvironment()
+        j.update_from_env_dict(response["env"])
+        j.update_env_groups_from_info(response.get("envGroups", []))
+        j.update_node_groups_from_info(response.get("nodeGroups", []))
+        j.update_nodes_from_info(response.get("nodes", []))
+        return j
 
     @staticmethod
     @lru_cache(maxsize=1)
@@ -68,32 +78,37 @@ class JelasticEnvironment(_JelasticObject):
         from .. import api_connector as jelapi_connector
 
         response = jelapi_connector()._("Environment.Control.GetEnvs")
-        return {
-            info["env"]["envName"]: JelasticEnvironment(
-                jelastic_env=info["env"],
-                env_groups=info.get("envGroups", []),
-                node_groups=info.get("nodeGroups", []),
-                nodes=info.get("nodes", []),
-            )
-            for info in response["infos"]
-        }
+        envs = {}
+        for info in response["infos"]:
+            name = info["env"]["envName"]
+            envs[name] = JelasticEnvironment()
+            envs[name].update_from_env_dict(info["env"])
+            envs[name].update_env_groups_from_info(info.get("envGroups", []))
+            envs[name].update_node_groups_from_info(info.get("nodeGroups", []))
+            envs[name].update_nodes_from_info(info.get("nodes", []))
 
-    def _update_from_getEnvInfo(
-        self,
-        jelastic_env: Dict[str, Any],
-        env_groups: Optional[List[str]] = None,
-        node_groups: Optional[List[str]] = None,
-        nodes: Optional[List[Dict[str, Any]]] = None,
-    ) -> None:
+        return envs
+
+    def attach_node_group(self, node_group: JelasticNodeGroup) -> None:
         """
-        Construct/Update our object from the structure
+        Make sure a node_group is attached correctly to that Environment
+        """
+        self.nodeGroups[node_group.nodeGroupType.value] = node_group
+        node_group._parent = self
+
+    def update_from_env_dict(self, jelastic_env_dict: Dict[str, Any]) -> None:
+        """
+        Update from the environment dict as gotten from API
         """
         # Allow exploration of the returned object, but don't act on it.
-        self._env = jelastic_env
+        self._env = jelastic_env_dict
         # Read-only attributes
         self._shortdomain = self._env["shortdomain"]
         self._envName = self._env["envName"]
         self._domain = self._env["domain"]
+        self._hardwareNodeGroup = self._env["hardwareNodeGroup"]
+        self._sslstate = self._env["sslstate"]
+        self._ishaneabled = self._env["ishaenabled"]
 
         # Read-write attributes
         # displayName is sometimes not-present, do not die
@@ -104,54 +119,107 @@ class JelasticEnvironment(_JelasticObject):
         )
         self.extdomains = self._env["extdomains"]
 
-        self.envGroups = env_groups if env_groups else []
-        nodeGroupsList = (
-            [
-                JelasticNodeGroup(parent=self, node_group_from_env=node_group)
-                for node_group in node_groups
-            ]
-            if node_groups
-            else []
-        )
-        self.nodeGroups = {ng.nodeGroup.value: ng for ng in nodeGroupsList}
-
-        # Now add nodes in the nodeGroup
-        if nodes:
-            for node in nodes:
-                if node["nodeGroup"] not in self.nodeGroups:
-                    raise JelasticObjectException(
-                        "Environment got a node outside of one of its nodeGroups"
-                    )
-
-                node_group = self.nodeGroups[node["nodeGroup"]]
-                jelnode = JelasticNode(node_group=node_group, node_from_env=node)
-
-                node_group.nodes.append(jelnode)
-
         # Copy our attributes as it came from API
         self.copy_self_as_from_api()
+
+    def update_env_groups_from_info(self, env_groups: List[str]) -> None:
+        """
+        Update the envGroups as coming from API
+        """
+        self.envGroups = env_groups
+        self.copy_self_as_from_api("envGroups")
+
+    def update_node_groups_from_info(self, node_groups: List[Dict[str, Any]]) -> None:
+        """
+        Set the node groups (as gotten from API)
+        """
+        if not hasattr(self, "_envName"):
+            raise JelasticObjectException(
+                "update_node_groups: envName unset; call update_from_env_dict() first !"
+            )
+
+        for node_group_from_env in node_groups:
+            node_group = JelasticNodeGroup()
+            node_group.update_from_env_dict(node_group_from_env=node_group_from_env)
+            node_group.attach_to_environment(self)
+
+        self.copy_self_as_from_api("nodeGroups")
+
+    def update_nodes_from_info(self, nodes: List[Dict[str, Any]]) -> None:
+        """
+        Construct/Update the nodes
+        """
+        if not hasattr(self, "_envName"):
+            raise JelasticObjectException(
+                "update_nodes: envName unset; call update_from_env_dict() first !"
+            )
+
+        for ng in self.nodeGroups.values():
+            ng.nodes = []
+
+        # Now add nodes in the nodeGroup
+        for node_dict in nodes:
+            if node_dict["nodeGroup"] not in self.nodeGroups:
+                raise JelasticObjectException(
+                    "Environment got a node outside of one of its nodeGroups"
+                )
+
+            node_group = self.nodeGroups[node_dict["nodeGroup"]]
+            jelnode = JelasticNode()
+            jelnode.update_from_env_dict(node_from_env=node_dict)
+            jelnode.attach_to_node_group(node_group)
+
+            node_group.copy_self_as_from_api("nodes")
 
     def __init__(
         self,
         *,
-        jelastic_env: Dict[str, Any],
+        jelastic_env: Dict[str, Any] = None,
         env_groups: Optional[List[str]] = None,
-        node_groups: Optional[List[str]] = None,
+        node_groups: Optional[List[Dict[str, Any]]] = None,
         nodes: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         Construct a JelasticEnvironment from various data sources
         """
-        self._update_from_getEnvInfo(jelastic_env, env_groups, node_groups, nodes)
+        super().__init__()
+        if not hasattr(self, "nodeGroup"):
+            self.nodeGroups = {}
+        if not hasattr(self, "envGroups"):
+            self.envGroups = []
+
+        if jelastic_env:
+            deprecation(
+                "JelasticEnvironment.__init__(): passing jelastic_env is deprecated; use update_from_env_dict() instead"
+            )
+            self.update_from_env_dict(jelastic_env)
+
+        if env_groups:
+            deprecation(
+                "JelasticEnvironment.__init__(): passing env_groups is deprecated; use update_env_groups_from_info() instead"
+            )
+
+            self.update_env_groups_from_info(env_groups)
+
+        if node_groups:
+            deprecation(
+                "JelasticEnvironment.__init__(): passing node_groups is deprecated; use update_node_groups_from_info() instead"
+            )
+            self.update_node_groups_from_info(node_groups)
+
+        if nodes:
+            deprecation(
+                "JelasticEnvironment.__init__(): passing nodes is deprecated; use update_nodes_from_info() instead"
+            )
+            self.update_nodes_from_info(nodes)
 
     def refresh_from_api(self) -> None:
         response = self.api._("Environment.Control.GetEnvInfo", envName=self.envName)
-        self._update_from_getEnvInfo(
-            jelastic_env=response["env"],
-            env_groups=response.get("envGroups", []),
-            node_groups=response.get("nodeGroups", []),
-            nodes=response.get("nodes", []),
-        )
+        self.update_from_env_dict(response["env"])
+
+        self.update_env_groups_from_info(response.get("envGroups", []))
+        self.update_node_groups_from_info(response.get("nodeGroups", []))
+        self.update_nodes_from_info(response.get("nodes", []))
 
     def __str__(self) -> str:
         return f"JelasticEnvironment '{self.envName}' <https://{self.domain}>"
@@ -178,7 +246,7 @@ class JelasticEnvironment(_JelasticObject):
                 envName=self.envName,
                 envGroups=jsondumps(self.envGroups),
             )
-            self._from_api["envGroups"] = self.envGroups
+            self.copy_self_as_from_api("envGroups")
 
     def _save_extDomains(self):
         """
@@ -238,6 +306,72 @@ class JelasticEnvironment(_JelasticObject):
                     f"{self.__class__.__name__}: {self.status} not supported"
                 )
 
+    def get_topology(self) -> Dict[str, Any]:
+        """
+        Return the "Environment" topology, as consumed by ChangeTopology
+        See https://docs.jelastic.com/api/5.9.8/public/#!/api/environment.Control-method-ChangeTopology
+        """
+        return {
+            "displayName": self.displayName,
+            "ishaenabled": self.ishaneabled,
+            "region": self.hardwareNodeGroup,
+            "shortdomain": self.shortdomain,
+            "sslstate": self.sslstate,
+        }
+        # Missing keys:
+        # "engine": "string",
+
+    def _save_nodeGroups(self):
+        """
+        Save the nodeGroups, eventually update the topology first if needed.
+        """
+        # Determine if a topology change is needed
+        if (
+            "nodeGroups" not in self._from_api
+            or len(self._from_api["nodeGroups"]) != len(self.nodeGroups)
+            or any(ng.needs_topology_update() for ng in self.nodeGroups.values())
+        ):
+            # We need to force the API to match what we want.
+            # First, no wipeout of nodeGroups
+            if len(self.nodeGroups) == 0:
+                raise JelasticObjectException("Wipeout of nodeGroups not allowed")
+
+            # Backup the stuff we want to keep after topology change
+            wanted_node_groups = deepcopy(self.nodeGroups)
+
+            apiresponse = self.api._(
+                "Environment.Control.ChangeTopology",
+                envName=self.envName,
+                env=jsondumps(self.get_topology()),
+                nodes=jsondumps([ng.get_topology() for ng in self.nodeGroups.values()]),
+            )
+            response = apiresponse["response"]
+
+            self.update_from_env_dict(response["env"])
+            self.update_env_groups_from_info(response.get("envGroups", []))
+            self.nodeGroups = wanted_node_groups
+            self.update_nodes_from_info(response.get("nodes", []))
+
+            for k, ng in self.nodeGroups.items():
+                for n in ng.nodes:
+                    n.copy_self_as_from_api()
+
+                # Complex ones
+                ng.copy_self_as_from_api("_envVars")
+                ng.copy_self_as_from_api("_links")
+                ng.copy_self_as_from_api("_containerVolumes")
+
+                # Bare attributes
+                ng.copy_self_as_from_api("displayName")
+                ng.copy_self_as_from_api("isSLBAccessEnabled")
+
+                # Make sure these get saved afterwards
+                ng._from_api["_mountPoints"] = []
+
+        for ng in self.nodeGroups.values():
+            ng.save()
+        self._from_api["nodeGroups"] = self.nodeGroups
+
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
@@ -246,8 +380,7 @@ class JelasticEnvironment(_JelasticObject):
         self._save_envGroups()
         self._save_extDomains()
         self._set_running_status(self.status)
-        for ng in self.nodeGroups.values():
-            ng.save()
+        self._save_nodeGroups()
 
     def node_by_node_group(self, node_group: str) -> JelasticNode:
         """
@@ -261,10 +394,21 @@ class JelasticEnvironment(_JelasticObject):
 
         try:
             return self.nodeGroups[node_group].nodes[0]
-        except (KeyError, IndexError):
+        except (IndexError, KeyError):
             raise JelasticObjectException(
                 f"node_group {node_group} not found in environment's nodes"
             )
+
+    def get_sumstats(self, duration_in_seconds: int) -> List[str]:
+        """
+        Get usage stats
+        """
+        response = self.api._(
+            "Environment.Control.GetSumStat",
+            envName=self.envName,
+            duration=duration_in_seconds,
+        )
+        return response["stats"]
 
     def start(self) -> None:
         """

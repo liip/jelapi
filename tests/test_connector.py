@@ -76,6 +76,18 @@ def test_connector_refuses_wrongly_formatted_functions():
         assert uncontrolled_route.called
 
 
+def test_connector_is_not_functional_if_apidata_not_a_list():
+    japic = JelasticAPIConnector(apiurl=None, apitoken=None)
+    japic.apidata = "some-str"
+    assert not japic.is_functional()
+
+
+def test_connector_is_not_functional_if_apiurl_is_deleted():
+    japic = JelasticAPIConnector(apiurl=None, apitoken=None)
+    del japic.apiurl
+    assert not japic.is_functional()
+
+
 def test_connector_is_not_functional_without_api_url():
     japic = JelasticAPIConnector(apiurl="", apitoken="secret")
     assert not japic.is_functional()

@@ -10,16 +10,11 @@ def test_jelapi_api_connector_has_an_httpx_client():
     assert jelapi.api_connector().client
 
 
-def test_jelapi_api_connector_got_api_url():
-    jelapi.api_url = "https://example.com/1.0/"
-    assert jelapi.api_connector().apiurl == "https://example.com/1.0/"
+def test_jelapi_api_connector_sets_api_url():
+    jelapi.api_url = "https://api.example.org/2.0/"
+    assert jelapi.api_connector().apiurl == "https://api.example.org/2.0/"
 
 
 def test_jelapi_api_connector_got_token():
-    jelapi.api_token = "secret"
-    assert jelapi.api_connector().apidata["session"] == "secret"
-
-
-def test_jelapi_api_connector_changes_on_api_url_change():
-    jelapi.api_token = "secret"
-    assert jelapi.api_connector().apidata["session"] == "secret"
+    jelapi.api_token = "new-secret"
+    assert jelapi.api_connector().apidata["session"] == "new-secret"

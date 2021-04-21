@@ -1,19 +1,58 @@
+import warnings
 from unittest.mock import Mock
 
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode
+from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
+from jelapi.factories import JelasticEnvironmentFactory
 
 from .utils import get_standard_env, get_standard_node, get_standard_node_groups
 
 
-def test_JelasticEnvironment_with_enough_data():
+def test_JelasticEnvironment_simple():
+    """
+    JelasticEnvironment can be instantiated as is
+    """
+    JelasticEnvironment()
+
+
+def test_JelasticEnvironment_factory():
+    """
+    JelasticEnvironment can be instantiated as is
+    """
+    j = JelasticEnvironmentFactory()
+    assert len(j.nodeGroups) == 3
+    assert "cp" in j.nodeGroups.keys()
+    assert "sqldb" in j.nodeGroups.keys()
+    assert "storage" in j.nodeGroups.keys()
+
+
+def test_JelasticEnvironment_deprecated():
     """
     JelasticEnvironment can be instantiated
     """
-    JelasticEnvironment(jelastic_env=get_standard_env())
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticEnvironment(jelastic_env=get_standard_env())
+        assert len(warns) == 1
+
+
+def test_JelasticEnvironment_ordering():
+    """
+    JelasticEnvironment can be instantiated, but the updates cannot be called in any order
+    """
+    j = JelasticEnvironment()
+    with pytest.raises(JelasticObjectException):
+        j.update_node_groups_from_info([])
+
+    with pytest.raises(JelasticObjectException):
+        j.update_nodes_from_info([])
+
+    # Calling the update_from_env_dict first solves this
+    j.update_from_env_dict(get_standard_env())
+    j.update_node_groups_from_info([])
+    j.update_nodes_from_info([])
 
 
 def test_JelasticEnvironment_with_missing_data():
@@ -22,8 +61,15 @@ def test_JelasticEnvironment_with_missing_data():
     """
     env_truncated = get_standard_env()
     del env_truncated["domain"]
+
+    # Deprecated format
+    with warnings.catch_warnings(record=True):
+        with pytest.raises(KeyError):
+            JelasticEnvironment(jelastic_env=env_truncated)
+
+    j = JelasticEnvironment()
     with pytest.raises(KeyError):
-        JelasticEnvironment(jelastic_env=env_truncated)
+        j.update_from_env_dict(env_truncated)
 
 
 def test_JelasticEnvironment_getter_by_name():
@@ -111,7 +157,7 @@ def test_JelasticEnvironment_cannot_set_some_ro_attributes():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     for attr in ["shortdomain", "domain", "envName"]:
         assert getattr(jelenv, attr)
         with pytest.raises(AttributeError):
@@ -122,7 +168,7 @@ def test_JelasticEnvironment_doesnt_differ_from_api_initially():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert not jelenv.differs_from_api()
 
 
@@ -130,7 +176,7 @@ def test_JelasticEnvironment_str_rep():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert str(jelenv) == "JelasticEnvironment 'envName' <https://domain>"
 
 
@@ -138,7 +184,7 @@ def test_JelasticEnvironment_differs_from_api_if_displayName_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     jelenv.displayName = "different displayName"
     assert jelenv.differs_from_api()
 
@@ -152,18 +198,15 @@ def test_JelasticEnvironment_displayName_change_and_save_will_talk_to_API_twice(
         return_value={"env": get_standard_env(), "envGroups": []},
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironmentFactory()
     jelenv.displayName = "different displayName"
-    jelenv.save()
+    jelenv._save_displayName()
     jelapic()._.assert_called()
 
     jelapic()._.reset_mock()
 
     # A second save should not call the API
-    jelenv.save()
+    jelenv._save_displayName()
     jelapic()._.assert_not_called()
 
 
@@ -171,7 +214,10 @@ def test_JelasticEnvironment_differs_from_api_if_envGroups_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env(), env_groups=["A", "B"])
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_env_groups_from_info(["A", "B"])
+
     jelenv.envGroups.append("C")
     assert jelenv.differs_from_api()
     jelenv.envGroups = ["A", "B"]
@@ -445,7 +491,7 @@ def test_JelasticEnvironment_differs_from_api_if_extdomains_is_changed():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
-    jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
+    jelenv = JelasticEnvironmentFactory()
     assert not jelenv.differs_from_api()
     jelenv.extdomains.append("test.example.com")
     assert jelenv.differs_from_api()
@@ -504,7 +550,11 @@ def test_JelasticEnvironment_nodes():
     assert jelenv.differs_from_api()
 
     jelapic()._ = Mock(
-        return_value={"env": get_standard_env(), "envGroups": []},
+        return_value={
+            "env": get_standard_env(),
+            "envGroups": [],
+            "nodes": [get_standard_node()],
+        },
     )
     jelenv.save()
     assert not jelenv.differs_from_api()
@@ -564,3 +614,62 @@ def test_JelasticEnvironment_node_fetcher():
         jelenv.node_by_node_group("nosqldb")
 
     assert isinstance(jelenv.node_by_node_group("cp"), JelasticNode)
+
+
+def test_JelasticEnvironment_sumstats():
+    """
+    We can get Environment sumstats
+    """
+    jelapic()._ = Mock(
+        return_value={"stats": []},  # Of course there is something in that dict.
+    )
+    jelenv = JelasticEnvironmentFactory()
+    with pytest.raises(TypeError):
+        # duration is needed
+        jelenv.get_sumstats()
+
+    # Fetch 8 hours'
+    jelenv.get_sumstats(8 * 60 * 60)
+
+
+def test_JelasticEnvironment_no_nodeGroups_wipe():
+    """
+    nodeGroups cannot be wiped
+    """
+    j = JelasticEnvironmentFactory()
+    j.nodeGroups = {}
+    assert j.differs_from_api()
+    # We cannot wipe nodeGroups
+    with pytest.raises(JelasticObjectException):
+        j.save()
+
+
+def test_JelasticEnvironment_add_node_group():
+    """
+    Test saving of nodeGroups' updates, adding one
+    """
+    j = JelasticEnvironmentFactory()
+    ng = JelasticNodeGroup(nodeGroupType=JelasticNodeGroup.NodeGroupType.NOSQL_DATABASE)
+    assert not ng.is_from_api
+    assert ng._envVars == {}
+    ng.attach_to_environment(j)
+    ng.raise_unless_can_call_api()
+
+    n = JelasticNode(nodeType=JelasticNode.NodeType.DOCKER)
+    assert not n.is_from_api
+    n.attach_to_node_group(ng)
+
+    assert j.differs_from_api()
+
+    jelapic()._ = Mock(
+        return_value={
+            "response": {
+                "env": get_standard_env(),
+                "envGroups": [],
+                "nodes": [get_standard_node()],
+            }
+        },
+    )
+    j._save_nodeGroups()
+    # Called twice, once for saving, once for refresh
+    jelapic()._.assert_called()

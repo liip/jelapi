@@ -1,9 +1,12 @@
+from datetime import datetime
+
 import pytest
 
 from jelapi.classes.jelasticobject import (
     _JelasticAttribute,
     _JelasticObject,
     _JelAttrBool,
+    _JelAttrDatetime,
     _JelAttrDict,
     _JelAttrInt,
     _JelAttrIPv4,
@@ -41,6 +44,24 @@ def test_JelAttrBool_supports_bool_typecheck():
         t.jela = 2
     with pytest.raises(TypeError):
         t.jela = "string"
+
+
+def test_JelAttrDatetime_supports_datetime_typecheck():
+    """
+    _JelAttrDatetimes to store datetimes
+    """
+
+    class Test:
+        jela = _JelAttrDatetime()
+
+    t = Test()
+    t.jela = datetime.now()
+    with pytest.raises(TypeError):
+        t.jela = 2
+    with pytest.raises(TypeError):
+        t.jela = "string"
+    with pytest.raises(TypeError):
+        t.jela = False
 
 
 def test_JelAttrStr_supports_str_typecheck():

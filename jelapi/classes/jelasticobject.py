@@ -1,6 +1,8 @@
+import logging
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Any, Dict
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 
 class _JelasticAttribute:
@@ -55,6 +57,12 @@ class _JelAttrInt(_JelasticAttribute):
             raise TypeError(f"{value} is no int")
 
 
+class _JelAttrDatetime(_JelasticAttribute):
+    def typecheck(self, value: Any) -> None:
+        if not isinstance(value, datetime):
+            raise TypeError(f"{value} is no datetime")
+
+
 class _JelAttrDict(_JelasticAttribute):
     def typecheck(self, value: Any) -> None:
         if not isinstance(value, dict):
@@ -89,7 +97,53 @@ class _JelasticObject(ABC):
     _from_api                dict of attributes as last refreshed from API
     """
 
-    _from_api: Dict[str, Any] = None
+    _from_api: Optional[Dict[str, Any]] = None
+    _logger: logging.Logger
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Instantiate logger
+        """
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def _tracelog(self, msg, *args, **kwargs):
+        """
+        Coding-level tracer, if needed
+        """
+        return self._logger.log(logging.DEBUG - 1, msg, *args, **kwargs)
+
+    def __deepcopy__(self, memo):
+        """
+        When copying the object, mark it as not from the API
+        """
+        # See https://stackoverflow.com/questions/1500718/how-to-override-the-copy-deepcopy-operations-for-a-python-object
+        cls = self.__class__
+        cp = cls.__new__(cls)
+        memo[id(self)] = cp
+        for k, v in self.__dict__.items():
+            setattr(cp, k, deepcopy(v, memo))
+
+        cp._from_api = []
+        return cp
+
+    def archive_from_api(self):
+        """
+        Get a deepcopy of thyself, cut from API
+        """
+        self.before_archive_from_api()
+        cp = deepcopy(self)
+        cp.after_archive_from_api()
+        return cp
+
+    def before_archive_from_api(self):
+        """
+        Do what's needed after deepcopying away from API
+        """
+
+    def after_archive_from_api(self):
+        """
+        Do what's needed after deepcopying away from API
+        """
 
     def copy_self_as_from_api(self, only_this_key: str = None) -> None:
         """
@@ -117,9 +171,27 @@ class _JelasticObject(ABC):
                 and not descriptor_class.read_only
             ):
                 self._from_api[k] = deepcopy(v)
-        # TODO Add an "updated_at" attribute
+
+        self._from_api["copied_to_api_at"] = datetime.now()
+
+    @property
+    def is_from_api(self) -> bool:
+        """
+        Whether it was from API or is a new instance
+        """
+        try:
+            return hasattr(self, "_from_api") and "copied_to_api_at" in self._from_api
+        except TypeError:
+            return False
 
     def differs_from_api(self) -> bool:
+        """
+        Check if the JelasticAttributes differ from the API
+        """
+        if not self.is_from_api:
+            self._tracelog(f"differs_from_api() = {True} (as is_from_api = {False})")
+            return True
+
         for k, v in vars(self).items():
             if k[0] == "_":
                 # Check public_name
@@ -136,12 +208,44 @@ class _JelasticObject(ABC):
             ):
                 if descriptor_class.checked_for_differences:
                     if k not in self._from_api or self._from_api[k] != v:
+                        self._tracelog(
+                            f"differs_from API because k:{k} was checked and differs"
+                        )
                         return True
                 elif isinstance(descriptor_class, _JelAttrList):
+                    self._tracelog(f"Check if list {k} is in _from_api")
+                    if k not in self._from_api:
+                        self._tracelog(
+                            f"differs_from API because {k} is not in _from_api"
+                        )
+                        return True
+
+                    self._tracelog(
+                        f"Check if list {k} differs from API; {v} vs {self._from_api[k]}"
+                    )
+                    if len(v) != len(self._from_api[k]):
+                        self._tracelog(
+                            f"differs_from API because list:{k} was checked for length and differs from API ({len(v)} != {len(self._from_api[k])})"
+                        )
+                        return True
                     if any(item.differs_from_api() for item in v):
+                        self._tracelog(
+                            f"differs_from API because list:{k} was checked and one item differs"
+                        )
                         return True
                 elif isinstance(descriptor_class, _JelAttrDict):
+                    self._tracelog(
+                        f"Check if dict {k} differs from API; {v} vs {self._from_api[k]}"
+                    )
+                    if len(v) != len(self._from_api[k]):
+                        self._tracelog(
+                            f"differs_from API because dict:{k} was checked for length and differs from API ({len(v)} != {len(self._from_api[k])})"
+                        )
+                        return True
                     if any(item.differs_from_api() for item in v.values()):
+                        self._tracelog(
+                            f"differs_from API because dict:{k} was checked and one item differs"
+                        )
                         return True
         return False
 
@@ -152,21 +256,19 @@ class _JelasticObject(ABC):
         DO NOT update the object. That'd done in refresh_from_api
         """
 
-    @abstractmethod
-    def refresh_from_api(self) -> None:
-        """
-        Refresh current object from the API
-        """
-
     def save(self) -> None:
         """
         Save the changes staged in attributes
         """
         if self.differs_from_api():
             # Implements the saving of the changes to Jelastic
+            self._tracelog("save() -> differs_from_api() -> save_to_jelastic()")
             self.save_to_jelastic()
-            # Fetches, to verify changes were proceeded with correctly
-            self.refresh_from_api()
+            if hasattr(self, "refresh_from_api"):
+                # Fetches, to verify changes were proceeded with correctly
+                self._tracelog("save() -> differs_from_api() -> refresh_from_api()")
+                self.refresh_from_api()
+
         # Make extra sure we did update everything needed, and that all sub saves behaved correctly
         assertmsg = f" {self.__class__.__name__}: save_to_jelastic() method only partially implemented."
         assert not self.differs_from_api(), assertmsg

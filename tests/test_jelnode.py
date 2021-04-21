@@ -1,52 +1,112 @@
+import warnings
 from copy import deepcopy
 from unittest.mock import Mock
 
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticEnvironment, JelasticNode, JelasticNodeGroup
+from jelapi.classes import JelasticNode
 from jelapi.exceptions import JelasticObjectException
-
-from .utils import get_standard_env, get_standard_node, get_standard_node_group
-
-jelenv = JelasticEnvironment(jelastic_env=get_standard_env())
-node_group = JelasticNodeGroup(
-    parent=jelenv, node_group_from_env=get_standard_node_group()
+from jelapi.factories import (
+    JelasticEnvironmentFactory,
+    JelasticNodeFactory,
 )
 
+from .utils import get_standard_node
 
-def test_JelasticNode_with_enough_data():
-    """
-    JelasticNode can be instantiated
-    """
-    JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+jelenv = JelasticEnvironmentFactory()
+node_group = list(jelenv.nodeGroups.values())[0]
 
 
-def test_JelasticNode_with_missing_data():
+def test_JelasticNode_simple_load():
     """
-    JelasticNode can be instantiated
+    JelasticNode can be instantiated as-is
     """
-    with pytest.raises(TypeError):
-        # node_group is also mandatory
-        JelasticNode(node_from_env=get_standard_node())
-    with pytest.raises(TypeError):
-        # node_from_env is also mandatory
+    JelasticNode()
+
+
+def test_JelasticNode_with_node_group():
+    """
+    JelasticNode can be instantiated with just node_group
+    """
+    with warnings.catch_warnings(record=True) as warns:
         JelasticNode(node_group=node_group)
+        # There was one deprecationWarning for node_from_env() usage
+        assert len(warns) == 1
+        assert issubclass(warns[0].category, DeprecationWarning)
 
-    for musthavekey in ["id", "fixedCloudlets", "flexibleCloudlets"]:
+
+def test_JelasticNode_with_node_from_env():
+    """
+    JelasticNode can be instantiated with just node_from_env
+    """
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticNode(node_from_env=get_standard_node())
+        # There was one deprecationWarning for node_from_env() usage
+        assert len(warns) == 1
+        assert issubclass(warns[0].category, DeprecationWarning)
+
+
+def test_JelasticNode_update_from_env_dict():
+    """
+    JelasticNode can get an env dict
+    """
+    node = JelasticNode()
+    assert not node.is_from_api
+    node.update_from_env_dict(node_from_env=get_standard_node())
+    assert node.is_from_api
+
+
+def test_JelasticNode_update_from_broken_env_dict():
+    """
+    JelasticNode cannot be updated from env with missing items
+    """
+    for musthavekey in [
+        "id",
+        "name",
+        "nodemission",
+        "status",
+        "type",
+        "fixedCloudlets",
+        "flexibleCloudlets",
+    ]:
         node = get_standard_node()
         del node[musthavekey]
+
+        n = JelasticNode()
         with pytest.raises(KeyError):
-            # missing id Dies
-            JelasticNode(node_group=node_group, node_from_env=node)
+            # missing items raises
+            n.update_from_env_dict(node)
+
+
+def test_JelasticNode_update_from_dict_with_unknown_nodeType():
+    """
+    JelasticNode cannot be instantiated with weird nodeTypes
+    """
+    node = get_standard_node()
+    node["nodeType"] = "this-is-unknown-type"
+
+    n = JelasticNode()
+    with pytest.raises(JelasticObjectException):
+        n.update_from_env_dict(node)
+
+
+def test_JelasticNode_factory():
+    node = JelasticNodeFactory()
+    assert node.is_from_api
+
+    with pytest.raises(JelasticObjectException):
+        # envVars cannot be fetched if not from API
+        node.envVars
 
 
 def test_JelasticNode_immutable_data():
     """
     Doesn't differ from API at build
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    assert str(node) == "JelasticNode id:1"
+    node = JelasticNodeFactory()
+    node._id = 3
+    assert str(node) == "JelasticNode id:3"
 
     with pytest.raises(AttributeError):
         node.id = 4
@@ -58,7 +118,7 @@ def test_JelasticNode_birth_from_api():
     """
     Doesn't differ from API at build
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node = JelasticNodeFactory()
     assert not node.differs_from_api()
 
 
@@ -66,8 +126,10 @@ def test_JelasticNode_cloudlet_changes_let_differ_from_api():
     """
     Any cloudlet change makes it differ from API
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    node.fixedCloudlets = 2
+    node = JelasticNodeFactory()
+    # Force 1 as coming from API
+    node._from_api["fixedCloudlets"] = 1
+    node.fixedCloudlets = 8
     assert node.differs_from_api()
     node.fixedCloudlets = 1
     assert not node.differs_from_api()
@@ -79,7 +141,7 @@ def test_JelasticNode_flexibleCloudlet_reduction_allowance_doesnt_differ_from_ap
     """
     Setting the allowed flag doesn't make the node differ from API by itself
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node = JelasticNodeFactory()
     assert not node.differs_from_api()
     assert not node.allowFlexibleCloudletsReduction
 
@@ -87,12 +149,26 @@ def test_JelasticNode_flexibleCloudlet_reduction_allowance_doesnt_differ_from_ap
     assert not node.differs_from_api()
 
 
+def test_JelasticNode_cannot_be_api_updated_without_node_group():
+    """
+    Test that without envName, no API updates can happen
+    """
+    node = JelasticNode()
+    with pytest.raises(JelasticObjectException):
+        node.raise_unless_can_update_to_api()
+
+    # Setting the node_group fixes that
+    node.attach_to_node_group(node_group=node_group)
+    node.raise_unless_can_update_to_api()
+
+
 def test_JelasticNode_set_cloudlets():
     """
     Setting any of fixed or flexible cloudlets calls the API once
     """
     jelapic()._ = Mock()
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node = JelasticNodeFactory()
+    node.attach_to_node_group(node_group)
     node.fixedCloudlets = 3
     node.save()
     jelapic()._.assert_called_once()
@@ -102,10 +178,11 @@ def test_JelasticNode_cannot_reduce_flexibleCloudlets():
     """
     Reducing the flexible cloudlets cannot be done without setting the allowed flag
     """
-    node = JelasticNode(
-        node_group=node_group,
-        node_from_env=get_standard_node(flexible_cloudlets=8),
-    )
+    node = JelasticNodeFactory()
+    node.attach_to_node_group(node_group)
+    # 8 came from API
+    node._from_api["flexibleCloudlets"] = 8
+
     node.flexibleCloudlets = 7
     with pytest.raises(JelasticObjectException):
         node.save()
@@ -116,46 +193,18 @@ def test_JelasticNode_cannot_reduce_flexibleCloudlets():
     jelapic()._.assert_called_once()
 
 
-def test_JelasticNode_envVars_refreshes_from_API():
+def test_JelasticNode_envVars_works_but_takes_from_node_group():
     """
-    Getting the envVars gets us an API call
+    Getting the envVars gets us the nodeGroups'
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node_group._envVars = {"TEST": "example.com"}
+    node_group._envVars_need_fetching = False
 
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    assert "VAR" in node.envVars
-    assert node.envVars["VAR"] == "value"
-    # As we lazy-load, accessing the dict will call the API once
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
+    node = JelasticNodeFactory()
+    node.attach_to_node_group(node_group)
 
-
-def test_JelasticNode_envVars_raises_if_set_without_fetch():
-    """
-    Saving a faked envVars without fetch will raise
-    """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    node._envVars = {"ID": "evil"}
-    with pytest.raises(JelasticObjectException):
-        node.save()
-
-
-def test_JelasticNode_envVars_raises_if_set_empty():
-    """
-    Saving a faked envVars without fetch will raise
-    """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    # fetch it
-    node.envVars
-    # empty it
-    node._envVars = {}
-    with pytest.raises(JelasticObjectException):
-        node.save()
+    assert "TEST" in node.envVars
+    assert node.envVars["TEST"] == "example.com"
 
 
 def test_JelasticNode_envVars_raises_if_env_is_not_running():
@@ -170,10 +219,10 @@ def test_JelasticNode_envVars_raises_if_env_is_not_running():
         jelenv_local.status = status
         node_group_local = deepcopy(node_group)
         node_group_local._parent = jelenv_local
-        node = JelasticNode(
-            node_group=node_group_local,
-            node_from_env=get_standard_node(),
-        )
+
+        node = JelasticNodeFactory()
+        node.attach_to_node_group(node_group_local)
+
         jelapic()._ = Mock(
             return_value={"object": {"VAR": "value"}},
         )
@@ -188,45 +237,38 @@ def test_JelasticNode_envVars_raises_if_env_is_not_running():
                 node.envVars
 
 
-def test_JelasticNode_envVars_updates():
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+def test_JelasticNode_links_empty():
+    """
+    Getting the links works
+    """
+    node = JelasticNodeFactory()
+    assert node.links == []
 
-    jelapic()._ = Mock(
-        return_value={"object": {"VAR": "value"}},
-    )
-    assert node.envVars["VAR"] == "value"
-    # As we lazy-load, accessing the dict will call the API once
-    jelapic()._.assert_called_once()
 
-    node.envVars["NEWVAR"] = "revolution"
-    assert node.differs_from_api()
-    jelapic()._ = Mock(return_value={"result": 0})
-    # Save the addition, it will work, and call one _add_
-    node.save()
-    assert not node.differs_from_api()
-    jelapic()._.assert_called_once()
-
-    jelapic()._.reset_mock()
-    del node.envVars["NEWVAR"]
-    # Save the removal, it will work, and call one _remove_
-    node.save()
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
-
-    # Now test both addition and removal, this will do a single "set"
-    node.envVars["NEWVAR"] = "new"
-    del node.envVars["VAR"]
-    jelapic()._.reset_mock()
-    node.save()
-    jelapic()._.assert_called_once()
-    assert not node.differs_from_api()
+def test_JelasticNode_links_only_from_inwards():
+    """
+    Getting the links works
+    """
+    node = JelasticNode()
+    ndict = get_standard_node()
+    ndict["customitem"] = {
+        "dockerLinks": [
+            {"type": "IN", "sourceNodeId": 0},
+            {"type": "OUT", "sourceNodeId": 10},
+        ]
+    }
+    node.update_from_env_dict(ndict)
+    assert len(node.links) == 1
+    assert node.links[0]["sourceNodeId"] == 0
 
 
 def test_JelasticNode_exec_commands():
     """
     We can launch multiple commands in sequence in nodes
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node = JelasticNode()
+    node.attach_to_node_group(node_group)
+    node.update_from_env_dict(get_standard_node())
 
     jelapic()._ = Mock(
         return_value={
@@ -260,7 +302,8 @@ def test_JelasticNode_exec_command():
     """
     We can launch a single command in a node
     """
-    node = JelasticNode(node_group=node_group, node_from_env=get_standard_node())
+    node = JelasticNodeFactory()
+    node.attach_to_node_group(node_group)
 
     jelapic()._ = Mock(
         return_value={
@@ -281,3 +324,25 @@ def test_JelasticNode_exec_command():
     with pytest.raises(TypeError):
         # We can't extend the single command for a list
         node.execute_command(["/bin/true", "echo 'example.com'"])
+
+
+def test_JelasticNode_read_file():
+    """
+    We can gather a single file in a node
+    """
+    node = JelasticNodeFactory()
+    node.attach_to_node_group(node_group)
+
+    jelapic()._ = Mock(
+        return_value={
+            "body": "Text content",
+            "result": 0,
+        },
+    )
+    with pytest.raises(TypeError):
+        # We can't read no file
+        node.read_file("")
+
+    body = node.read_file("/tmp/test")
+    jelapic()._.assert_called_once()
+    assert body == "Text content"

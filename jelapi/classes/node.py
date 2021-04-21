@@ -102,8 +102,18 @@ class JelasticNode(_JelasticObject):
         if not self.nodeType:
             raise JelasticObjectException(f"nodeType unknown: {self._node['nodeType']}")
 
+        # Mandatory attributes, raises KeyError if missing
         for attr in [
             "id",
+            "name",
+            "nodemission",
+            "status",
+            "type",
+        ]:
+            setattr(self, f"_{attr}", self._node[attr])
+
+        # Ususal attributes, does not raise if inexistant
+        for attr in [
             "intIP",
             "url",
             "diskIoLimit",
@@ -122,14 +132,10 @@ class JelasticNode(_JelasticObject):
             "ismaster",
             "maxchanks",
             "messages",
-            "name",
-            "nodemission",
             "osType",
             "packages",
             "port",
             "singleContext",
-            "status",
-            "type",
             "url",
             "version",
         ]:

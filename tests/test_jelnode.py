@@ -61,7 +61,15 @@ def test_JelasticNode_update_from_broken_env_dict():
     """
     JelasticNode cannot be updated from env with missing items
     """
-    for musthavekey in ["id", "fixedCloudlets", "flexibleCloudlets"]:
+    for musthavekey in [
+        "id",
+        "name",
+        "nodemission",
+        "status",
+        "type",
+        "fixedCloudlets",
+        "flexibleCloudlets",
+    ]:
         node = get_standard_node()
         del node[musthavekey]
 

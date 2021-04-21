@@ -670,6 +670,6 @@ def test_JelasticEnvironment_add_node_group():
             }
         },
     )
-    j._save_nodeGroups()
+    j._save_topology_and_node_groups()
     # Called twice, once for saving, once for refresh
     jelapic()._.assert_called()

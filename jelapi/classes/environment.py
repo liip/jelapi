@@ -48,7 +48,7 @@ class JelasticEnvironment(_JelasticObject):
     nodeGroups = _JelAttrDict(checked_for_differences=False)
     ishaneabled = _JelAttrBool(read_only=True)
     hardwareNodeGroup = _JelAttrStr(read_only=True)
-    sslstate = _JelAttrBool(read_only=True)
+    sslstate = _JelAttrBool()
 
     @staticmethod
     def get(envName: str) -> "JelasticEnvironment":
@@ -321,15 +321,16 @@ class JelasticEnvironment(_JelasticObject):
         # Missing keys:
         # "engine": "string",
 
-    def _save_nodeGroups(self):
+    def _save_topology_and_node_groups(self):
         """
-        Save the nodeGroups, eventually update the topology first if needed.
+        Save the topology (nodeGroups, sslstate and others), then the nodeGroups'.
         """
         # Determine if a topology change is needed
         if (
             "nodeGroups" not in self._from_api
             or len(self._from_api["nodeGroups"]) != len(self.nodeGroups)
             or any(ng.needs_topology_update() for ng in self.nodeGroups.values())
+            or self.sslstate != self._from_api["sslstate"]
         ):
             # We need to force the API to match what we want.
             # First, no wipeout of nodeGroups
@@ -380,7 +381,7 @@ class JelasticEnvironment(_JelasticObject):
         self._save_envGroups()
         self._save_extDomains()
         self._set_running_status(self.status)
-        self._save_nodeGroups()
+        self._save_topology_and_node_groups()
 
     def node_by_node_group(self, node_group: str) -> JelasticNode:
         """

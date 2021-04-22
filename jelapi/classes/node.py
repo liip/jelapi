@@ -34,6 +34,7 @@ class JelasticNode(_JelasticObject):
     intIP = _JelAttrIPv4(read_only=True)
     url = _JelAttrStr(read_only=True)
     nodeGroup = _JelAttr(read_only=True)
+    status = _JelAttr(read_only=True)
 
     # Not a real attribute, at least not synced to API
     docker_registry: Dict
@@ -63,7 +64,6 @@ class JelasticNode(_JelasticObject):
     packages = _JelAttrList(read_only=True)
     port = _JelAttrInt(read_only=True)
     singleContext = _JelAttrBool(read_only=True)
-    status = _JelAttrInt(read_only=True)
     type = _JelAttrStr(read_only=True)
     version = _JelAttrStr(read_only=True)
 
@@ -107,10 +107,20 @@ class JelasticNode(_JelasticObject):
             "id",
             "name",
             "nodemission",
-            "status",
             "type",
         ]:
             setattr(self, f"_{attr}", self._node[attr])
+
+        from .environment import JelasticEnvironment
+
+        self._status = next(
+            (
+                status
+                for status in JelasticEnvironment.Status
+                if status.value == self._node["status"]
+            ),
+            JelasticEnvironment.Status.UNKNOWN,
+        )
 
         # Ususal attributes, does not raise if inexistant
         for attr in [

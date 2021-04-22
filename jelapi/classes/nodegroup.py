@@ -317,23 +317,8 @@ class JelasticNodeGroup(_JelasticObject):
 
         # The environment variables, if we got them.
         if not self._envVars_need_fetching:
-            # Certain keys we're sure to not want to enforce to Jelasitc
-            forbidden_keys = [
-                "MASTER_ID",
-                "MASTER_HOST",
-                "DOCKER_EXPOSED_PORT",
-                "PATH",
-            ]
-
-            # Exclude the keys that start with a link name
-            env = {
-                k: v
-                for k, v in self._envVars.items()
-                if not any([k.startswith(linkkey) for linkkey in self.links.keys()])
-                and not any([k == forbidden_key for forbidden_key in forbidden_keys])
-            }
-            if env:
-                topology["env"] = env
+            if self._envVars:
+                topology["env"] = self._envVars
         return topology
 
     def needs_topology_update(self):

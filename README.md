@@ -21,16 +21,17 @@ jelenvs = jelapi.JelasticEnvironment.list()
 
 jelenv = next(
     env
-    for _, env in jelenvs.items()
+    for env in jelenvs.values()
     if all(eg in env.envGroups for eg in ["clients/envgroup", "prod"])
 )
 
-for n in jelenv.nodes:
-    n.fixedCloudlets = 2
+for ng in jelenv.nodeGroups.values():
+    for n in ng.nodes:
+        n.fixedCloudlets = 2
 
-cpnode = jelenv.node_by_node_group("cp")
-cpnode.fixedCloudlets = 2
-cpnode.envVars["AN_ENV_VARIABLE"] = "Content"
+cpnodegroup = jelenv.nodeGroups("cp"]
+cpnodegroup.nodes[0].fixedCloudlets = 2
+cpnodegroup.envVars["AN_ENV_VARIABLE"] = "Content"
 
 sqlnode = jelenv.nodeGroups["sqldb"].nodes[0]
 sqlnode.flexibleCloudlets = max(sqlnode.flexibleCloudlets - 2, 0)

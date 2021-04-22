@@ -280,6 +280,7 @@ class JelasticNodeGroup(_JelasticObject):
             "count": len(self.nodes),
             "restartDelay": 0,
             "displayName": self.displayName,
+            "isSLBAccessEnabled": self.isSLBAccessEnabled,
             "nodeGroup": self.nodeGroupType.value,
             "nodeType": node0.nodeType.value,
             "mission": node0.nodemission,

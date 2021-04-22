@@ -36,7 +36,13 @@ class JelasticEnvironment(_JelasticObject):
         SUSPENDED = 5
         CREATING = 6
         CLONING = 7
+        EXPORTING = 9
+        MIGRATING = 10
+        BROKEN = 11
         UPDATING = 12
+        STOPPING = 13
+        GOING_TO_SLEEP = 14
+        REFRESHING = 1002
 
     displayName = _JelAttrStr()
     envGroups = _JelAttrList()

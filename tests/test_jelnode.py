@@ -5,12 +5,9 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticNode
+from jelapi.classes import JelasticEnvironment, JelasticNode
 from jelapi.exceptions import JelasticObjectException
-from jelapi.factories import (
-    JelasticEnvironmentFactory,
-    JelasticNodeFactory,
-)
+from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeFactory
 
 from .utils import get_standard_node
 
@@ -343,6 +340,14 @@ def test_JelasticNode_read_file():
         # We can't read no file
         node.read_file("")
 
-    body = node.read_file("/tmp/test")
-    jelapic()._.assert_called_once()
-    assert body == "Text content"
+    for status in JelasticEnvironment.Status:
+        node.nodeGroup._parent.status = status
+
+        jelapic()._.reset_mock()
+        if status != JelasticEnvironment.Status.RUNNING:
+            with pytest.raises(JelasticObjectException):
+                node.read_file("/tmp/test")
+        else:
+            body = node.read_file("/tmp/test")
+            jelapic()._.assert_called_once()
+            assert body == "Text content"

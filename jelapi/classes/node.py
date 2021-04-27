@@ -310,6 +310,13 @@ class JelasticNode(_JelasticObject):
         if not path:
             raise TypeError(f"path {path} cannot be empty")
 
+        from .environment import JelasticEnvironment
+
+        if self.nodeGroup._parent.status != JelasticEnvironment.Status.RUNNING:
+            raise JelasticObjectException(
+                "Files cannot be read from environments not running."
+            )
+
         self.raise_unless_can_update_to_api()
 
         response = self.api._(

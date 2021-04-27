@@ -5,15 +5,11 @@ from unittest.mock import Mock
 import pytest
 
 from jelapi import api_connector as jelapic
-from jelapi.classes import JelasticMountPoint, JelasticNodeGroup
+from jelapi.classes import JelasticEnvironment, JelasticMountPoint, JelasticNodeGroup
 from jelapi.exceptions import JelasticObjectException
 from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
-from .utils import (
-    get_standard_mount_point,
-    get_standard_node,
-    get_standard_node_group,
-)
+from .utils import get_standard_mount_point, get_standard_node, get_standard_node_group
 
 jelenv = JelasticEnvironmentFactory()
 
@@ -272,9 +268,17 @@ def test_JelasticNodeGroup_read_file():
         # We can't read no file
         node_group.read_file("")
 
-    body = node_group.read_file("/tmp/test")
-    jelapic()._.assert_called_once()
-    assert body == "Text content"
+    for status in JelasticEnvironment.Status:
+        node_group._parent.status = status
+
+        jelapic()._.reset_mock()
+        if status != JelasticEnvironment.Status.RUNNING:
+            with pytest.raises(JelasticObjectException):
+                node_group.read_file("/tmp/test")
+        else:
+            body = node_group.read_file("/tmp/test")
+            jelapic()._.assert_called_once()
+            assert body == "Text content"
 
 
 def test_JelasticNodeGroup_get_mountPoints():

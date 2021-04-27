@@ -2,7 +2,7 @@
 
 from setuptools import find_packages, setup
 
-__version__ = "0.1.0rc12"
+__version__ = "0.1.0rc13"
 
 install_requires = ["httpx[http2]"]
 test_requires = [

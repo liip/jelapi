@@ -390,7 +390,6 @@ class JelasticEnvironment(_JelasticObject):
 
                 # Bare attributes
                 ng.copy_self_as_from_api("displayName")
-                ng.copy_self_as_from_api("isSLBAccessEnabled")
 
                 # Make sure these get saved afterwards
                 ng._from_api["_mountPoints"] = []

@@ -369,6 +369,11 @@ class JelasticEnvironment(_JelasticObject):
             )
             response = apiresponse["response"]
 
+            if "error" in response:
+                raise JelasticObjectException(
+                    "There was an error in ChangeTopology: {}".format(response["error"])
+                )
+
             self.update_from_env_dict(response["env"])
             self.update_env_groups_from_info(response.get("envGroups", []))
             self.nodeGroups = wanted_node_groups

@@ -675,6 +675,29 @@ def test_JelasticEnvironment_add_node_group():
     jelapic()._.assert_called()
 
 
+def test_JelasticEnvironment_add_node_group_error_in_api():
+    """
+    Test saving of nodeGroups', but it gives an error in API
+    """
+    j = JelasticEnvironmentFactory()
+    ng = JelasticNodeGroup(nodeGroupType=JelasticNodeGroup.NodeGroupType.NOSQL_DATABASE)
+    ng.attach_to_environment(j)
+    ng.raise_unless_can_call_api()
+    n = JelasticNode(nodeType=JelasticNode.NodeType.DOCKER)
+    n.attach_to_node_group(ng)
+    jelapic()._ = Mock(
+        return_value={
+            "response": {
+                "error": "This is a long error message",
+            }
+        },
+    )
+    with pytest.raises(JelasticObjectException):
+        j._save_topology_and_node_groups()
+    # Called once, then rose
+    jelapic()._.assert_called_once()
+
+
 def test_JelEnv_cannot_clone_too_long():
     j = JelasticEnvironmentFactory()
     with pytest.raises(JelasticObjectException):

@@ -1,10 +1,7 @@
 import warnings
 
 from jelapi.classes._volume import _JelasticVolume
-from jelapi.classes.nodegroup import JelasticNodeGroup
-from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
-
-from .utils import get_standard_env
+from jelapi.factories import JelasticEnvironmentFactory
 
 env = JelasticEnvironmentFactory()
 cp_node_group = env.nodeGroups["cp"]

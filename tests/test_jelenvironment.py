@@ -29,13 +29,42 @@ def test_JelasticEnvironment_factory():
     assert "storage" in j.nodeGroups.keys()
 
 
-def test_JelasticEnvironment_deprecated():
+def test_JelasticEnvironment_deprecated_init_calls():
     """
-    JelasticEnvironment can be instantiated
+    JelasticEnvironment has deprecated init calls
     """
     with warnings.catch_warnings(record=True) as warns:
         JelasticEnvironment(jelastic_env=get_standard_env())
         assert len(warns) == 1
+
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticEnvironment(env_groups=["A"])
+        assert len(warns) == 1
+
+    with pytest.raises(JelasticObjectException):
+        # Cannot be given just node_groups (it still warns)
+        with warnings.catch_warnings(record=True):
+            JelasticEnvironment(node_groups=get_standard_node_groups())
+
+    with warnings.catch_warnings(record=True) as warns:
+        JelasticEnvironment(
+            jelastic_env=get_standard_env(), node_groups=get_standard_node_groups()
+        )
+        assert len(warns) == 2
+
+    with pytest.raises(JelasticObjectException):
+        # Cannot be given just nodes (it still warns)
+        with warnings.catch_warnings(record=True):
+            JelasticEnvironment(nodes=[get_standard_node()])
+
+    with warnings.catch_warnings(record=True) as warns:
+        # It needs to be given all 3, otherwise the node falls outside the nodegroups
+        JelasticEnvironment(
+            jelastic_env=get_standard_env(),
+            node_groups=get_standard_node_groups(),
+            nodes=[get_standard_node()],
+        )
+        assert len(warns) == 3
 
 
 def test_JelasticEnvironment_ordering():
@@ -234,13 +263,10 @@ def test_JelasticEnvironment_envGroups_change_and_save_will_talk_to_API():
         return_value={"env": get_standard_env(), "envGroups": []},
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[
-            "A",
-            "B",
-        ],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_env_groups_from_info(["A", "B"])
+
     jelenv.envGroups.append("C")
     jelenv.save()
     jelapic()._.assert_called()
@@ -256,10 +282,9 @@ def test_JelasticEnvironment_can_only_be_stopped_from_running():
     """
     JelasticEnvironment cannot (yet) be put to certain states
     """
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+
     JelStatus = JelasticEnvironment.Status
     for status in [
         JelStatus.UNKNOWN,
@@ -286,10 +311,9 @@ def test_JelasticEnvironment_unsupported_statuses():
     """
     JelasticEnvironment cannot (yet) be put to certain states
     """
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+
     JelStatus = JelasticEnvironment.Status
     for status in [
         JelStatus.UNKNOWN,
@@ -317,10 +341,9 @@ def test_JelasticEnvironment_stop_via_status():
         }
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+
     jelenv.status = JelasticEnvironment.Status.STOPPED
     jelenv.save()
     assert jelenv.status == JelasticEnvironment.Status.STOPPED
@@ -345,10 +368,9 @@ def test_JelasticEnvironment_stop_via_method():
         }
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+
     jelenv.stop()
     assert jelenv.status == JelasticEnvironment.Status.STOPPED
     jelapic()._.assert_called()
@@ -378,10 +400,9 @@ def test_JelasticEnvironment_start_via_status():
         JelasticEnvironment.Status.SLEEPING,
     ]:
         jelapic()._.reset_mock()
-        jelenv = JelasticEnvironment(
-            jelastic_env=get_standard_env(status.value),
-            env_groups=[],
-        )
+        jelenv = JelasticEnvironment()
+        jelenv.update_from_env_dict(get_standard_env(status.value))
+
         jelenv.status = JelasticEnvironment.Status.RUNNING
         jelenv.save()
         assert jelenv.status == JelasticEnvironment.Status.RUNNING
@@ -412,10 +433,9 @@ def test_JelasticEnvironment_start_via_method():
         JelasticEnvironment.Status.SLEEPING,
     ]:
         jelapic()._.reset_mock()
-        jelenv = JelasticEnvironment(
-            jelastic_env=get_standard_env(status.value),
-            env_groups=[],
-        )
+        jelenv = JelasticEnvironment()
+        jelenv.update_from_env_dict(get_standard_env(status.value))
+
         jelenv.start()
         assert jelenv.status == JelasticEnvironment.Status.RUNNING
         jelapic()._.assert_called()
@@ -445,10 +465,9 @@ def test_JelasticEnvironment_sleep_via_status():
         JelasticEnvironment.Status.SLEEPING,
     ]:
         jelapic()._.reset_mock()
-        jelenv = JelasticEnvironment(
-            jelastic_env=get_standard_env(status.value),
-            env_groups=[],
-        )
+        jelenv = JelasticEnvironment()
+        jelenv.update_from_env_dict(get_standard_env(status.value))
+
         jelenv.status = JelasticEnvironment.Status.RUNNING
         jelenv.save()
         assert jelenv.status == JelasticEnvironment.Status.SLEEPING
@@ -473,10 +492,9 @@ def test_JelasticEnvironment_sleep_via_method():
         }
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(JelasticEnvironment.Status.RUNNING),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env(JelasticEnvironment.Status.RUNNING))
+
     jelenv.sleep()
     assert jelenv.status == JelasticEnvironment.Status.SLEEPING
     jelapic()._.assert_called()
@@ -499,7 +517,7 @@ def test_JelasticEnvironment_differs_from_api_if_extdomains_is_changed():
     assert jelenv.differs_from_api()
 
 
-def test_JelasticEnvironment_extomains_change_and_save_will_talk_to_API():
+def test_JelasticEnvironment_extdomains_change_and_save_will_talk_to_API():
     """
     JelasticEnvironment can be instantiated, but some read-only attributes can be read, but not written
     """
@@ -508,10 +526,9 @@ def test_JelasticEnvironment_extomains_change_and_save_will_talk_to_API():
         return_value={"env": get_standard_env(extdomains=twodomains), "envGroups": []},
     )
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        env_groups=[],
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+
     jelenv.extdomains = twodomains
     jelenv.save()
     jelapic()._.assert_called()
@@ -540,11 +557,11 @@ def test_JelasticEnvironment_nodes():
         node["id"] = i
         nodes.append(node)
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        node_groups=get_standard_node_groups(),
-        nodes=nodes,
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_node_groups_from_info(get_standard_node_groups())
+    jelenv.update_nodes_from_info(nodes)
+
     assert not jelenv.differs_from_api()
     jelenv.nodeGroups["cp"].nodes[0].fixedCloudlets = 8
     assert jelenv.differs_from_api()
@@ -575,13 +592,12 @@ def test_JelasticEnvironment_stranger_nodes():
         if ngdict["name"] != nodes[0]["nodeGroup"]
     ]
 
-    get_standard_node_groups()
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_env_groups_from_info(node_groups)
+
     with pytest.raises(JelasticObjectException):
-        JelasticEnvironment(
-            jelastic_env=get_standard_env(),
-            node_groups=node_groups,
-            nodes=nodes,
-        )
+        jelenv.update_nodes_from_info(nodes)
 
 
 def test_JelasticEnvironment_node_fetcher():
@@ -597,11 +613,10 @@ def test_JelasticEnvironment_node_fetcher():
     nodes[0]["nodeGroup"] = "cp"
     nodes[1]["nodeGroup"] = "sqldb"
 
-    jelenv = JelasticEnvironment(
-        jelastic_env=get_standard_env(),
-        node_groups=get_standard_node_groups(),
-        nodes=nodes,
-    )
+    jelenv = JelasticEnvironment()
+    jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_node_groups_from_info(get_standard_node_groups())
+    jelenv.update_nodes_from_info(nodes)
 
     from jelapi.classes import JelasticNodeGroup
 

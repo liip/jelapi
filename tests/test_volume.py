@@ -1,17 +1,13 @@
 import warnings
 
 from jelapi.classes._volume import _JelasticVolume
-from jelapi.classes.environment import JelasticEnvironment
 from jelapi.classes.nodegroup import JelasticNodeGroup
-from jelapi.factories import JelasticNodeGroupFactory
+from jelapi.factories import JelasticEnvironmentFactory, JelasticNodeGroupFactory
 
 from .utils import get_standard_env
 
-env = JelasticEnvironment(jelastic_env=get_standard_env())
-cp_node_group = JelasticNodeGroupFactory(
-    nodeGroupType=JelasticNodeGroup.NodeGroupType.APPLICATION_SERVER
-)
-cp_node_group.attach_to_environment(env)
+env = JelasticEnvironmentFactory()
+cp_node_group = env.nodeGroups["cp"]
 
 
 def test_JelasticVolume_init():

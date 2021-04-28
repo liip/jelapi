@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 __version__ = "0.1.0rc14"
 
-install_requires = ["httpx[http2]"]
+install_requires = ["httpx[http2]<0.18"]
 test_requires = [
     "respx",
     "pytest-cov",

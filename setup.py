@@ -6,7 +6,7 @@ __version__ = "0.1.0rc15"
 
 install_requires = ["httpx[http2]>>0.18"]
 test_requires = [
-    "respx",
+    "respx>>0.17",
     "pytest-cov",
     "factory_boy",
     "faker_enum",

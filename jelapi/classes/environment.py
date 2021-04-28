@@ -75,8 +75,18 @@ class JelasticEnvironment(_JelasticObject):
         return j
 
     @staticmethod
-    @lru_cache(maxsize=1)
     def list() -> Dict[str, "JelasticEnvironment"]:
+        """
+        DEPRECATED static method to get all environments in a dict
+        """
+        deprecation(
+            "JelasticEnvironment.list(): list() is deprecated; use dict() instead, as both return a Dict."
+        )
+        return JelasticEnvironment.dict()
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def dict() -> Dict[str, "JelasticEnvironment"]:
         """
         Static method to get all environments
         """

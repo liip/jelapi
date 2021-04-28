@@ -112,7 +112,7 @@ def test_JelasticEnvironment_getter_by_name():
     jelapic()._.assert_called_once()
 
 
-def test_JelasticEnvironment_list_all():
+def test_JelasticEnvironment_dict_all():
     """
     JelasticEnvironment.get() works, and does one call to api
     """
@@ -123,8 +123,18 @@ def test_JelasticEnvironment_list_all():
             ]
         },
     )
-    JelasticEnvironment.list.cache_clear()
-    jelenvs = JelasticEnvironment.list()
+
+    jelapic()._.reset_mock()
+    JelasticEnvironment.dict.cache_clear()
+    with warnings.catch_warnings(record=True) as warns:
+        # .list() is deprecated, use dict() now
+        JelasticEnvironment.list()
+        assert len(warns) == 1
+    jelapic()._.assert_called_once()
+
+    jelapic()._.reset_mock()
+    JelasticEnvironment.dict.cache_clear()
+    jelenvs = JelasticEnvironment.dict()
     assert isinstance(jelenvs, dict)
     first_jelenvname = list(jelenvs)[0]
     assert isinstance(jelenvs[first_jelenvname], JelasticEnvironment)
@@ -132,12 +142,12 @@ def test_JelasticEnvironment_list_all():
 
     # If we gather the list again, it will not get called more, thanks to the lru_cache:
     jelapic()._.reset_mock()
-    JelasticEnvironment.list()
+    JelasticEnvironment.dict()
     jelapic()._.assert_not_called()
 
     # Let's clear the lru_cache
-    JelasticEnvironment.list.cache_clear()
-    JelasticEnvironment.list()
+    JelasticEnvironment.dict.cache_clear()
+    JelasticEnvironment.dict()
     jelapic()._.assert_called_once()
 
 
@@ -159,8 +169,8 @@ def test_JelasticEnvironment_list_with_nodes():
         },
     )
     with pytest.raises(JelasticObjectException):
-        JelasticEnvironment.list.cache_clear()
-        jelenvs = JelasticEnvironment.list()
+        JelasticEnvironment.dict.cache_clear()
+        jelenvs = JelasticEnvironment.dict()
 
     jelapic()._ = Mock(
         return_value={
@@ -174,8 +184,8 @@ def test_JelasticEnvironment_list_with_nodes():
             ]
         },
     )
-    JelasticEnvironment.list.cache_clear()
-    jelenvs = JelasticEnvironment.list()
+    JelasticEnvironment.dict.cache_clear()
+    jelenvs = JelasticEnvironment.dict()
     assert isinstance(jelenvs, dict)
     first_jelenvname = list(jelenvs)[0]
     assert isinstance(jelenvs[first_jelenvname], JelasticEnvironment)

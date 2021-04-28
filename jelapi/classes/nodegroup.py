@@ -455,14 +455,14 @@ class JelasticNodeGroup(_JelasticObject):
 
         #  Prepare data attr for ApplyData call
         data = {}
-        for attr in ["displayName", "isSLBAccessEnabled"]:
+        for attr in ["displayName"]:
             v = getattr(self, attr)
             if attr not in self._from_api or self._from_api[attr] != v:
                 data[attr] = v
         if len(data) > 0:
-            # Jelastic API 5.9
+            # Jelastic API 6.0
             self.api._(
-                "Environment.Control.ApplyNodeGroupData",
+                "Environment.NodeGroup.ApplyData",
                 envName=self.envName,
                 nodeGroup=self.nodeGroupType.value,
                 data=json.dumps(data),
@@ -470,11 +470,31 @@ class JelasticNodeGroup(_JelasticObject):
             for k in data.keys():
                 self._from_api[k] = data[k]
 
+    def _slb_access(self):
+        """
+        Use "SetSLBAccessEnabled" to set it
+        """
+        self.raise_unless_can_call_api()
+
+        if (
+            "isSLBAccessEnabled" not in self._from_api
+            or self._from_api["isSLBAccessEnabled"] != self.isSLBAccessEnabled
+        ):
+            # Jelastic API 6.0
+            self.api._(
+                "Environment.NodeGroup.SetSLBAccessEnabled",
+                envName=self.envName,
+                nodeGroup=self.nodeGroupType.value,
+                enabled=self.isSLBAccessEnabled,
+            )
+            self._from_api["isSLBAccessEnabled"] = self.isSLBAccessEnabled
+
     def save_to_jelastic(self):
         """
         Mandatory _JelasticObject method, to save status to Jelastic
         """
         self._apply_data()
+        self._slb_access()
         self._set_env_vars()
         for n in self.nodes:
             n.save()

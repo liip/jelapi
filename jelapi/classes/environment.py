@@ -330,7 +330,7 @@ class JelasticEnvironment(_JelasticObject):
     def get_topology(self) -> Dict[str, Any]:
         """
         Return the "Environment" topology, as consumed by ChangeTopology
-        See https://docs.jelastic.com/api/5.9.8/public/#!/api/environment.Control-method-ChangeTopology
+        See https://docs.jelastic.com/api/6.0.1/public/#!/api/environment.Control-method-ChangeTopology
         """
         return {
             "displayName": self.displayName,

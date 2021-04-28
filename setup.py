@@ -4,9 +4,9 @@ from setuptools import find_packages, setup
 
 __version__ = "0.1.0rc17"
 
-install_requires = ["httpx[http2]>>0.18"]
+install_requires = ["httpx[http2]>=0.18"]
 test_requires = [
-    "respx>>0.17",
+    "respx>=0.17",
     "pytest-cov",
     "factory_boy",
     "faker_enum",

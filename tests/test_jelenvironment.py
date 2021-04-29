@@ -604,6 +604,7 @@ def test_JelasticEnvironment_stranger_nodes():
 
     jelenv = JelasticEnvironment()
     jelenv.update_from_env_dict(get_standard_env())
+    jelenv.update_node_groups_from_info(node_groups)
 
     with pytest.raises(JelasticObjectException):
         jelenv.update_nodes_from_info(nodes)

@@ -107,3 +107,27 @@ class JelasticNodeGroupFactory(_JelasticNodeGroupFactory):
 
         node.attach_to_node_group(instance)
         instance.copy_self_as_from_api("nodes")
+
+
+class JelasticEnvGroupFactory(factory.Factory):
+    class Meta:
+        model = classes.JelasticEnvGroup
+
+    name = factory.Faker("color_name")
+    color = factory.Faker("color")
+
+    @classmethod
+    def _after_postgeneration(obj, instance, create, results=None):
+        """
+        Generate a standard Node
+        """
+        instance.update_from_api_dict(
+            {
+                "id": 1,
+                "name": instance.name,
+                "isIsolated": False,
+                "visibility": 0,
+                "color": "#123456",
+            }
+        )
+        assert instance.is_from_api

@@ -7,6 +7,7 @@ hoster_domain = None
 
 
 from .classes import (  # noqa
+    JelasticEnvGroup,
     JelasticEnvironment,
     JelasticMountPoint,
     JelasticNode,

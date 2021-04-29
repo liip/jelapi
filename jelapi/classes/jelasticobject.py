@@ -91,6 +91,16 @@ class _JelAttrIPv4(_JelAttrStr):
                 raise TypeError(f"{value} is no IPv4 address ({n} is no int)")
 
 
+class _JelAttrHexColor(_JelAttrStr):
+    def typecheck(self, value: Any) -> None:
+        if value and (
+            len(value) != 7
+            or value[0] != "#"
+            or not all(c.lower() in "0123456789abcdef" for c in value[1:])
+        ):
+            raise TypeError(f"{value} is no Hexadecimal color")
+
+
 class _JelasticObject(ABC):
     """
     Any Jelastic Object, that keeps the last data as fetched from the API

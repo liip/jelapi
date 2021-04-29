@@ -8,6 +8,7 @@ from jelapi.classes.jelasticobject import (
     _JelAttrBool,
     _JelAttrDatetime,
     _JelAttrDict,
+    _JelAttrHexColor,
     _JelAttrInt,
     _JelAttrIPv4,
     _JelAttrList,
@@ -157,6 +158,30 @@ def test_JelAttrDict_supports_dict_typecheck():
         t.jela = "2"
     with pytest.raises(TypeError):
         t.jela = 2
+
+
+def test_JelAttrHexColor_supports_dict_typecheck():
+    """
+    _JelAttrHexColor to store arbitrary hex colors
+    """
+
+    class Test:
+        jela = _JelAttrHexColor()
+
+    t = Test()
+    t.jela = "#ab1200"
+    with pytest.raises(TypeError):
+        # Missing the first #
+        t.jela = "ab1200"
+    with pytest.raises(TypeError):
+        # Too short
+        t.jela = "#ab120"
+    with pytest.raises(TypeError):
+        # Too long
+        t.jela = "#ab12003"
+    with pytest.raises(TypeError):
+        # Not hexa
+        t.jela = "#ab120g"
 
 
 def test_JelasticAttribute_can_be_read_only():

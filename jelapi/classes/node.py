@@ -128,7 +128,6 @@ class JelasticNode(_JelasticObject):
             "url",
             "diskIoLimit",
             "diskIopsLimit",
-            "diskLimit",
             "endpoints",
             "features",
             "hasPackages",
@@ -152,6 +151,9 @@ class JelasticNode(_JelasticObject):
             if attr in self._node:
                 setattr(self, f"_{attr}", self._node[attr])
 
+        #  This one must be present, for nodeGroup's sake
+        self._diskLimit = self._node["diskLimit"]
+
         # RW attrs
         for attr in ["fixedCloudlets", "flexibleCloudlets"]:
             setattr(self, attr, self._node[attr])
@@ -171,6 +173,7 @@ class JelasticNode(_JelasticObject):
         nodeType: NodeType = None,
         fixedCloudlets: int = 1,
         flexibleCloudlets: int = 2,
+        diskLimit: int = 50000,
         node_group: "JelasticNodeGroup" = None,
         node_from_env: Dict[str, Any] = None,
     ) -> None:
@@ -183,6 +186,8 @@ class JelasticNode(_JelasticObject):
         # Set initials
         self.fixedCloudlets = fixedCloudlets
         self.flexibleCloudlets = flexibleCloudlets
+        # Instantiate with default "50Gb" size
+        self._diskLimit = diskLimit
 
         if nodeType:
             self._nodeType = nodeType

@@ -8,6 +8,7 @@ from .jelasticobject import (
     _JelasticObject,
     _JelAttrBool,
     _JelAttrDict,
+    _JelAttrInt,
     _JelAttrList,
     _JelAttrStr,
 )
@@ -63,6 +64,9 @@ class JelasticNodeGroup(_JelasticObject):
     _links = (
         _JelAttrDict()
     )  # this is the JelAttr, use links to access them through lazy loading
+
+    # in Gb
+    diskLimit = _JelAttrInt()
 
     @property
     def envVars(self):
@@ -274,7 +278,6 @@ class JelasticNodeGroup(_JelasticObject):
         """
         if len(self.nodes) == 0:
             raise JelasticObjectException("Can't get topology for an empty nodeGroup")
-        # return {"count": , "restartDelay": 0, "nod"}
         node0 = self.nodes[0]
         topology = {
             "count": len(self.nodes),
@@ -283,6 +286,7 @@ class JelasticNodeGroup(_JelasticObject):
             "isSLBAccessEnabled": self.isSLBAccessEnabled,
             "nodeGroup": self.nodeGroupType.value,
             "nodeType": node0.nodeType.value,
+            "diskLimit": self.diskLimit,
             "mission": node0.nodemission,
             "fixedCloudlets": node0.fixedCloudlets,
             "flexibleCloudlets": node0.flexibleCloudlets,
@@ -322,10 +326,12 @@ class JelasticNodeGroup(_JelasticObject):
                 topology["env"] = self._envVars
         return topology
 
-    def needs_topology_update(self):
+    def needs_topology_update(self) -> bool:
         """
         Whether the ng needs a topology update from the environment
         """
+        if self.nodes and self._from_api["diskLimit"] != self.diskLimit:
+            return True
         if not hasattr(self, "_links"):
             # Never fetched, no need
             return False
@@ -337,6 +343,11 @@ class JelasticNodeGroup(_JelasticObject):
         """
         self.nodes.append(node)
         node._nodeGroup = self
+        # Update nodeGroup-level attributes
+        if len(self.nodes) == 1:
+            # In node's API, diskLimit is given in bytes, but topology update, and at nodeGroup level, we store it as Gb
+            self.diskLimit = int(node.diskLimit / 1000)
+            self.copy_self_as_from_api("diskLimit")
 
     def append_mount_point(self, mount_point: "JelasticMountPoint") -> None:
         """

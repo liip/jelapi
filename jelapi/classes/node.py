@@ -405,14 +405,20 @@ class JelasticNode(_JelasticObject):
             sourceIP=sourceIP,
             targetIP=targetIP,
         )
+        try:
+            # Now fix the extIPs in both
+            self_node_response = next(
+                n for n in response["nodes"] if n["id"] == self.id
+            )
+            target_node_response = next(
+                n for n in response["nodes"] if n["id"] == target_node.id
+            )
 
-        # Now fix the extIPs in both
-        self_node_response = next(n for n in response["nodes"] if n["id"] == self.id)
-        target_node_response = next(
-            n for n in response["nodes"] if n["id"] == target_node.id
-        )
-
-        self._extIPs = self._extIPs_check_from_list(self_node_response["extIPs"])
-        target_node._extIPs = self._extIPs_check_from_list(
-            target_node_response["extIPs"]
-        )
+            self._extIPs = self._extIPs_check_from_list(self_node_response["extIPs"])
+            target_node._extIPs = self._extIPs_check_from_list(
+                target_node_response["extIPs"]
+            )
+        except KeyError as e:
+            raise JelasticObjectException(
+                f"response not in expected format (missing {','.join(e.args)})"
+            )

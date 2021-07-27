@@ -356,3 +356,89 @@ def test_JelasticNode_read_file():
             body = node.read_file("/tmp/test")
             jelapic()._.assert_called_once()
             assert body == "Text content"
+
+
+def test_JelasticNode_extIPs():
+    """
+    Setting extIPs only works with IPv4s
+    """
+    # Empty by default
+    node = JelasticNodeFactory()
+    assert node.extIPs == []
+
+    # Empty if unset
+    node_obj = get_standard_node()
+    del node_obj["extIPs"]
+    node = JelasticNode(node_from_env=node_obj)
+    assert node.extIPs == []
+
+    # Checks correctly validate IPv4s
+    assert node._extIPs_check_from_list(["not-an-ip"]) == []
+    assert node._extIPs_check_from_list(["127.0.0.1"]) == ["127.0.0.1"]
+
+    # Set if in env
+    node_obj = get_standard_node()
+    node_obj["extIPs"] = ["10.0.0.1"]
+    node = JelasticNode(node_from_env=node_obj)
+    assert node.extIPs == ["10.0.0.1"]
+
+    # Checking raises if not an IP
+    with pytest.raises(JelasticObjectException):
+        node._get_first_extIP_or_check("192.168.0.1.not-an-ip")
+
+    # Checking raises if not an in the list
+    with pytest.raises(JelasticObjectException):
+        assert node._get_first_extIP_or_check("192.168.0.1") == ""
+
+    # Checking does not raise if the list is of len 1 and not given
+    assert node._get_first_extIP_or_check() == "10.0.0.1"
+    # Checking does not raise if the list is of len 1 and given correct
+    assert node._get_first_extIP_or_check("10.0.0.1") == "10.0.0.1"
+
+    # But it raises with more than one IP if not given
+    node_obj["extIPs"].append("10.0.0.2")
+    node.update_from_env_dict(node_obj)
+
+    with pytest.raises(JelasticObjectException):
+        node._get_first_extIP_or_check()
+
+
+def test_JelasticNode_swapIps():
+    nodeA = JelasticNodeFactory()
+    nodeB = JelasticNodeFactory()
+
+    nodeA.attach_to_node_group(node_group)
+    nodeB.attach_to_node_group(node_group)
+
+    # Fails without IPs
+    with pytest.raises(JelasticObjectException):
+        nodeA.swap_ip_with(nodeB)
+
+    nodeA._extIPs = ["10.0.0.1"]
+    # Fails without IPs in both
+    with pytest.raises(JelasticObjectException):
+        nodeA.swap_ip_with(nodeB)
+
+    nodeB._extIPs = ["10.0.0.2"]
+
+    # Works with IPs on both sides, but...
+    jelapic()._ = Mock(
+        return_value={
+            "result": 0,
+        },
+    )
+    # raises if response is broken
+    with pytest.raises(JelasticObjectException):
+        nodeA.swap_ip_with(nodeB)
+
+    jelapic()._ = Mock(
+        return_value={
+            "nodes": [
+                {"id": nodeA.id, "extIPs": nodeB.extIPs},
+                {"id": nodeB.id, "extIPs": nodeA.extIPs},
+            ],
+            "result": 0,
+        },
+    )
+    # works fine if IPs exist and response is as expected
+    nodeA.swap_ip_with(nodeB)

@@ -362,3 +362,29 @@ class JelasticNode(_JelasticObject):
             path=path,
         )
         return response["body"]
+
+    def swap_ip_with(self, target_node: "JelasticNode") -> None:
+        """
+        Swap one node's IP with a remote one
+        """
+        if len(self.extIPs) != 1 or len(target_node.extIPs) != 1:
+            raise JelasticObjectException(
+                "Cannot swap IPs with number of extIPs different from 1"
+            )
+        response = self.api._(
+            "Environment.Binder.SwapExtIps",
+            envName=self.envName,
+            sourceNodeId=self.id,
+            targetNodeId=target_node.id,
+        )
+
+        # Now fix the extIPs in both
+        self_node_response = next(n for n in response["nodes"] if n["id"] == self.id)
+        target_node_response = next(
+            n for n in response["nodes"] if n["id"] == target_node.id
+        )
+
+        self._extIPs = self._extIPs_check_from_list(self_node_response["extIPs"])
+        target_node._extIPs = self._extIPs_check_from_list(
+            target_node_response["extIPs"]
+        )

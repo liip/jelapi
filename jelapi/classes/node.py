@@ -15,6 +15,14 @@ from .jelasticobject import (
 from .nodegroup import JelasticNodeGroup
 
 
+class _IPv4:
+    """
+    Tiny class to test IPv4s in extIPs
+    """
+
+    ip = _JelAttrIPv4()
+
+
 class JelasticNode(_JelasticObject):
     """
     Represents a Jelastic Node
@@ -35,6 +43,7 @@ class JelasticNode(_JelasticObject):
     url = _JelAttrStr(read_only=True)
     nodeGroup = _JelAttr(read_only=True)
     status = _JelAttr(read_only=True)
+    extIPs = _JelAttrList(read_only=True)
 
     # Not a real attribute, at least not synced to API
     docker_registry: Dict
@@ -148,8 +157,15 @@ class JelasticNode(_JelasticObject):
             "url",
             "version",
         ]:
-            if attr in self._node:
+            try:
                 setattr(self, f"_{attr}", self._node[attr])
+            except KeyError:
+                pass
+
+        try:
+            self._extIPs = self._extIPs_check_from_list(self._node["extIPs"])
+        except KeyError:
+            self._extIPs = []
 
         #  This one must be present, for nodeGroup's sake
         self._diskLimit = self._node["diskLimit"]
@@ -263,6 +279,22 @@ class JelasticNode(_JelasticObject):
                 "Cannot fetch envVars from node without nodeGroup (not from API ?)"
             )
 
+    def _extIPs_check_from_list(self, extips: List[str]):
+        """
+        Set the _extIPs from the node's content, or any list. It mostly does typechecking
+        """
+
+        _extIPs = []
+        for ip in extips:
+            try:
+                ipObj = _IPv4()
+                # Setting it here does the typecheck.
+                ipObj.ip = ip
+                _extIPs.append(ip)
+            except TypeError:
+                pass
+        return _extIPs
+
     def raise_unless_can_update_to_api(self):
         """
         Check if we can update to API, or raise
@@ -331,3 +363,62 @@ class JelasticNode(_JelasticObject):
             path=path,
         )
         return response["body"]
+
+    def _get_first_extIP_or_check(self, ip: str = None) -> str:
+        """
+        Either get the first extIP from self.extIPs, or return the given one if present
+        """
+        if ip:
+            ipObj = _IPv4()
+            # Setting it here does the typecheck.
+            try:
+                ipObj.ip = ip
+            except TypeError:
+                raise JelasticObjectException(f"IP {ip} is not a valid IPv4")
+            if ip not in self.extIPs:
+                raise JelasticObjectException(
+                    f"IP {ip} not in node extIPs {','.join(self.extIPs)}"
+                )
+        else:
+            if len(self.extIPs) != 1:
+                raise JelasticObjectException(
+                    f"Cannot determine the unique source IP from extIPs {','.join(self.extIPs)}"
+                )
+            ip = self.extIPs[0]
+        return ip
+
+    def swap_ip_with(
+        self, target_node: "JelasticNode", sourceIP: str = None, targetIP: str = None
+    ) -> None:
+        """
+        Swap one node's IP with a remote one
+        """
+
+        sourceIP = self._get_first_extIP_or_check(sourceIP)
+        targetIP = target_node._get_first_extIP_or_check(targetIP)
+
+        response = self.api._(
+            "Environment.Binder.SwapExtIps",
+            envName=self.envName,
+            sourceNodeId=self.id,
+            targetNodeId=target_node.id,
+            sourceIP=sourceIP,
+            targetIP=targetIP,
+        )
+        try:
+            # Now fix the extIPs in both
+            self_node_response = next(
+                n for n in response["nodes"] if n["id"] == self.id
+            )
+            target_node_response = next(
+                n for n in response["nodes"] if n["id"] == target_node.id
+            )
+
+            self._extIPs = self._extIPs_check_from_list(self_node_response["extIPs"])
+            target_node._extIPs = self._extIPs_check_from_list(
+                target_node_response["extIPs"]
+            )
+        except KeyError as e:
+            raise JelasticObjectException(
+                f"response not in expected format (missing {','.join(e.args)})"
+            )

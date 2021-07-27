@@ -67,6 +67,7 @@ def get_standard_node(
         "status": 1,
         "type": "NATIVE",
         "version": "docker-tag",
+        "extIPs": [],
     }
 
 

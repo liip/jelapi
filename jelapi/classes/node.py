@@ -15,6 +15,14 @@ from .jelasticobject import (
 from .nodegroup import JelasticNodeGroup
 
 
+class _IPv4:
+    """
+    Tiny class to test IPv4s in extIPs
+    """
+
+    ip = _JelAttrIPv4()
+
+
 class JelasticNode(_JelasticObject):
     """
     Represents a Jelastic Node
@@ -276,13 +284,6 @@ class JelasticNode(_JelasticObject):
         Set the _extIPs from the node's content, or any list. It mostly does typechecking
         """
 
-        class _IPv4:
-            """
-            Tiny class to test IPv4s in extIPs
-            """
-
-            ip = _JelAttrIPv4()
-
         _extIPs = []
         for ip in extips:
             try:
@@ -363,19 +364,46 @@ class JelasticNode(_JelasticObject):
         )
         return response["body"]
 
-    def swap_ip_with(self, target_node: "JelasticNode") -> None:
+    def _get_first_extIP_or_check(self, ip: str = None) -> str:
+        """
+        Either get the first extIP from self.extIPs, or return the given one if present
+        """
+        if ip:
+            ipObj = _IPv4()
+            # Setting it here does the typecheck.
+            try:
+                ipObj.ip = ip
+            except TypeError:
+                raise JelasticObjectException(f"IP {ip} is not a valid IPv4")
+            if ip not in self.extIPs:
+                raise JelasticObjectException(
+                    f"IP {ip} not in node extIPs {','.join(self.extIPs)}"
+                )
+        else:
+            if len(self.extIPs) != 1:
+                raise JelasticObjectException(
+                    f"Cannot determine the unique source IP from extIPs {','.join(self.extIPs)}"
+                )
+            ip = self.extIPs[0]
+        return ip
+
+    def swap_ip_with(
+        self, target_node: "JelasticNode", sourceIP: str = None, targetIP: str = None
+    ) -> None:
         """
         Swap one node's IP with a remote one
         """
-        if len(self.extIPs) != 1 or len(target_node.extIPs) != 1:
-            raise JelasticObjectException(
-                "Cannot swap IPs with number of extIPs different from 1"
-            )
+
+        sourceIP = self._get_first_extIP_or_check(sourceIP)
+        targetIP = target_node._get_first_extIP_or_check(targetIP)
+
         response = self.api._(
             "Environment.Binder.SwapExtIps",
             envName=self.envName,
             sourceNodeId=self.id,
             targetNodeId=target_node.id,
+            sourceIP=sourceIP,
+            targetIP=targetIP,
         )
 
         # Now fix the extIPs in both

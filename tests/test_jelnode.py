@@ -53,6 +53,11 @@ def test_JelasticNode_update_from_env_dict():
     node.update_from_env_dict(node_from_env=get_standard_node())
     assert node.is_from_api
 
+    # It also works with some attributes missing
+    node_obj = get_standard_node()
+    del node_obj["ismaster"]
+    node = JelasticNode(node_from_env=node_obj)
+
 
 def test_JelasticNode_update_from_broken_env_dict():
     """

@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ..exceptions import JelasticObjectException, deprecation
 from .jelasticobject import _JelasticAttribute as _JelAttr
@@ -556,14 +556,19 @@ class JelasticNodeGroup(_JelasticObject):
             tag=docker_tag,
         )
 
-    def restart(self):
+    def restart(self, delay: Optional[int] = None, isSequential: bool = True):
         """
         Restart all nodes in a nodeGroup
         """
         self.raise_unless_can_call_api()
 
+        kwargs = {"isSequential": isSequential}
+        if delay:
+            kwargs["delay"] = delay
+
         self.api._(
             "Environment.Control.RestartNodes",
             envName=self.envName,
             nodeGroup=self.nodeGroupType.value,
+            **kwargs,
         )

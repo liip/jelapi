@@ -251,6 +251,17 @@ def test_JelasticNodeGroup_redeploy():
     node_group.redeploy(docker_tag="latest")
 
 
+def test_JelasticNodeGroup_restart():
+    """
+    NodeGroups can be restarted
+    """
+    node_group = JelasticNodeGroupFactory()
+    node_group.attach_to_environment(JelasticEnvironmentFactory())
+
+    assert not node_group.differs_from_api()
+    node_group.restart()
+
+
 def test_JelasticNodeGroup_read_file():
     """
     We can gather a single file in a nodegroup

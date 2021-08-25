@@ -555,3 +555,15 @@ class JelasticNodeGroup(_JelasticObject):
             nodeGroup=self.nodeGroupType.value,
             tag=docker_tag,
         )
+
+    def restart(self):
+        """
+        Restart all nodes in a nodeGroup
+        """
+        self.raise_unless_can_call_api()
+
+        self.api._(
+            "Environment.Control.RestartNodes",
+            envName=self.envName,
+            nodeGroup=self.nodeGroupType.value,
+        )

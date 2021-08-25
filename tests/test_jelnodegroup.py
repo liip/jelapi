@@ -259,7 +259,7 @@ def test_JelasticNodeGroup_restart():
     node_group.attach_to_environment(JelasticEnvironmentFactory())
 
     assert not node_group.differs_from_api()
-    node_group.restart()
+    node_group.restart(delay=1)
 
 
 def test_JelasticNodeGroup_read_file():

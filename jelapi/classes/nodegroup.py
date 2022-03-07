@@ -35,6 +35,7 @@ class JelasticNodeGroup(_JelasticObject):
         SQL_DATABASE = "sqldb"
         NOSQL_DATABASE = "nosqldb"
         STORAGE_CONTAINER = "storage"
+        CLUSTER_STORAGE = "storage3"
 
     nodeGroupType = _JelAttr(read_only=True)
     envName = _JelAttrStr(read_only=True)
